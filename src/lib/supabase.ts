@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://zuedrwwniualphtpimpy.supabase.co'
@@ -159,5 +158,102 @@ export interface UserSettings {
   notifications_enabled: boolean
   reminder_frequency: string
   privacy_level: string
+  created_at: string
+}
+
+export interface ChatConversation {
+  id: string
+  user_id: string
+  conversation_id: string
+  created_at: string
+}
+
+export interface ChatMessage {
+  id: string
+  conversation_id: string
+  user_id: string
+  role: 'user' | 'assistant'
+  content: string
+  message_type: 'text' | 'crisis' | 'encouragement' | 'question'
+  emotion_detected?: string
+  crisis_level?: number
+  created_at: string
+}
+
+export interface CrisisResponse {
+  id: string
+  trigger_keywords: string[]
+  response_template: string
+  crisis_level: number
+  requires_human_intervention: boolean
+  created_at: string
+}
+
+export interface SecurityLog {
+  id: string
+  user_id?: string
+  event_type: string
+  ip_address?: string
+  user_agent?: string
+  details?: any
+  risk_level: 'low' | 'medium' | 'high' | 'critical'
+  created_at: string
+}
+
+export interface ActiveSession {
+  id: string
+  user_id: string
+  session_token: string
+  ip_address?: string
+  user_agent?: string
+  expires_at: string
+  last_activity: string
+  created_at: string
+}
+
+export interface UserBackup {
+  id: string
+  user_id: string
+  backup_type: 'full' | 'incremental' | 'manual'
+  data_snapshot: any
+  file_size?: number
+  checksum?: string
+  storage_location?: string
+  created_at: string
+  expires_at?: string
+}
+
+export interface PushSubscription {
+  id: string
+  user_id: string
+  endpoint: string
+  p256dh_key: string
+  auth_key: string
+  device_type?: string
+  device_name?: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface UserInsight {
+  id: string
+  user_id: string
+  insight_type: string
+  insight_data: any
+  confidence_score: number
+  generated_at: string
+  acknowledged_at?: string
+}
+
+export interface AnonymousPost {
+  id: string
+  user_id: string
+  group_id?: string
+  content: string
+  is_anonymous: boolean
+  mood_rating?: number
+  support_count: number
+  reported_count: number
+  is_flagged: boolean
   created_at: string
 }
