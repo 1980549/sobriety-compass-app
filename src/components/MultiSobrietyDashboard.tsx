@@ -2,32 +2,55 @@
 import { useState, useEffect } from 'react'
 import { useSobriety } from '@/hooks/useSobriety'
 import { useMoodHistory } from '@/hooks/useMoodHistory'
+import { useAchievements } from '@/hooks/useAchievements'
 import { useAuth } from '@/hooks/useAuth'
 import { SobrietyCard } from './SobrietyCard'
 import { StartJourneyModal } from './StartJourneyModal'
+import { JournalModal } from './JournalModal'
+import { AchievementsModal } from './AchievementsModal'
 import { MoodTracker } from './MoodTracker'
 import { SavingsTracker } from './SavingsTracker'
 import { EmergencyButton } from './EmergencyButton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, LogOut, Calendar, TrendingUp, Target } from 'lucide-react'
+import { Plus, LogOut, Calendar, TrendingUp, Target, BookOpen, Trophy } from 'lucide-react'
 
 export function MultiSobrietyDashboard() {
   const { user, signOut } = useAuth()
   const { records, loading } = useSobriety()
   const { getMoodStats } = useMoodHistory()
+  const { userAchievements, checkDaysAchievements, checkMoneyAchievements } = useAchievements()
   const [showStartModal, setShowStartModal] = useState(false)
+  const [showJournalModal, setShowJournalModal] = useState(false)
+  const [showAchievementsModal, setShowAchievementsModal] = useState(false)
 
-  // Atualizar contadores a cada minuto
+  // Atualizar contadores e verificar conquistas
   useEffect(() => {
     const interval = setInterval(() => {
       // Força re-render dos componentes para atualizar contadores
       window.dispatchEvent(new Event('sobriety-update'))
+      
+      // Verificar conquistas baseadas em dias
+      records.forEach(record => {
+        checkDaysAchievements(record)
+      })
+
+      // Verificar conquistas de economia
+      const totalSavings = records.reduce((sum, record) => {
+        if (record.daily_cost) {
+          return sum + (record.daily_cost * record.current_streak_days)
+        }
+        return sum
+      }, 0)
+      
+      if (totalSavings > 0) {
+        checkMoneyAchievements(totalSavings)
+      }
     }, 60000) // 1 minuto
 
     return () => clearInterval(interval)
-  }, [])
+  }, [records, checkDaysAchievements, checkMoneyAchievements])
 
   const moodStats = getMoodStats()
   const totalDays = records.reduce((sum, record) => sum + record.current_streak_days, 0)
@@ -78,7 +101,7 @@ export function MultiSobrietyDashboard() {
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Resumo Geral */}
         {records.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-sm font-medium text-gray-600">
@@ -125,6 +148,21 @@ export function MultiSobrietyDashboard() {
                 <p className="text-xs text-gray-500">Total economizado</p>
               </CardContent>
             </Card>
+
+            <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-sm font-medium text-gray-600">
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Conquistas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {userAchievements.length}
+                </div>
+                <p className="text-xs text-gray-500">Desbloqueadas</p>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -138,6 +176,20 @@ export function MultiSobrietyDashboard() {
             >
               <Plus className="w-4 h-4 mr-2" />
               Nova Jornada
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowJournalModal(true)}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Escrever no Diário
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowAchievementsModal(true)}
+            >
+              <Trophy className="w-4 h-4 mr-2" />
+              Conquistas
             </Button>
           </div>
         </div>
@@ -187,10 +239,20 @@ export function MultiSobrietyDashboard() {
         {records.some(r => r.daily_cost) && <SavingsTracker />}
       </div>
 
-      {/* Modal para iniciar jornada */}
+      {/* Modais */}
       <StartJourneyModal 
         open={showStartModal} 
         onOpenChange={setShowStartModal} 
+      />
+      
+      <JournalModal 
+        open={showJournalModal} 
+        onOpenChange={setShowJournalModal} 
+      />
+      
+      <AchievementsModal 
+        open={showAchievementsModal} 
+        onOpenChange={setShowAchievementsModal} 
       />
     </div>
   )
