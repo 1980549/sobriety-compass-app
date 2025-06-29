@@ -1,314 +1,452 @@
 
-import React from 'react'
-import { Book, Code, Database, Shield, Bot, Users, BarChart3, Cloud } from 'lucide-react'
+import React, { useState } from 'react'
+import { FileText, Code, Database, Shield, MessageSquare, Brain, Users, Download, Bell, BarChart3, ChevronRight, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+
+interface DocSection {
+  id: string
+  title: string
+  icon: React.ComponentType<any>
+  content: React.ReactNode
+  subsections?: Array<{
+    id: string
+    title: string
+    content: React.ReactNode
+  }>
+}
 
 export function Documentation() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Book className="w-6 h-6 text-blue-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Documentação Completa</h2>
-      </div>
+  const [activeSection, setActiveSection] = useState('overview')
+  const [openSections, setOpenSections] = useState<string[]>(['overview'])
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="features">Funcionalidades</TabsTrigger>
-          <TabsTrigger value="technical">Técnico</TabsTrigger>
-          <TabsTrigger value="api">API</TabsTrigger>
-        </TabsList>
+  const toggleSection = (sectionId: string) => {
+    setOpenSections(prev => 
+      prev.includes(sectionId) 
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    )
+  }
 
-        <TabsContent value="overview" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sobre a Aplicação</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-700">
-                Esta é uma aplicação completa de apoio à recuperação de vícios, desenvolvida com tecnologias modernas 
-                e focada na privacidade, segurança e bem-estar dos usuários em processo de recuperação.
-              </p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <Bot className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                  <p className="text-sm font-medium">Chatbot IA</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <Shield className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                  <p className="text-sm font-medium">Segurança Avançada</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <BarChart3 className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                  <p className="text-sm font-medium">Analytics</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <Users className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-                  <p className="text-sm font-medium">Comunidade</p>
-                </div>
+  const docSections: DocSection[] = [
+    {
+      id: 'overview',
+      title: 'Visão Geral',
+      icon: FileText,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Aplicação de Recuperação de Vícios</h3>
+          <p className="text-gray-700">
+            Uma aplicação completa para apoiar pessoas em processo de recuperação de vícios, 
+            oferecendo ferramentas de monitoramento, suporte emocional e comunidade.
+          </p>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4">
+              <h4 className="font-semibold mb-2">Principais Recursos</h4>
+              <ul className="text-sm space-y-1 text-gray-600">
+                <li>• Rastreamento de jornadas de sobriedade</li>
+                <li>• Chatbot IA com Google Gemini</li>
+                <li>• Sistema de detecção de crise</li>
+                <li>• Monitoramento de humor</li>
+                <li>• Comunidade de apoio</li>
+              </ul>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h4 className="font-semibold mb-2">Tecnologias</h4>
+              <ul className="text-sm space-y-1 text-gray-600">
+                <li>• React + TypeScript</li>
+                <li>• Supabase (Backend)</li>
+                <li>• Tailwind CSS</li>
+                <li>• Google Gemini AI</li>
+                <li>• PWA Ready</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'chatbot',
+      title: 'Sistema de Chatbot IA',
+      icon: MessageSquare,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Chatbot Inteligente com Google Gemini</h3>
+          <p className="text-gray-700">
+            O chatbot utiliza a API do Google Gemini para fornecer suporte personalizado 
+            baseado no contexto da jornada de recuperação do usuário.
+          </p>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-800 mb-2">Funcionalidades Principais</h4>
+            <ul className="text-sm space-y-1 text-blue-700">
+              <li>• <strong>Contexto Personalizado:</strong> Conhece o progresso de sobriedade do usuário</li>
+              <li>• <strong>Detecção de Crise:</strong> Identifica automaticamente situações de risco</li>
+              <li>• <strong>Respostas Empáticas:</strong> Fornece apoio emocional adequado</li>
+              <li>• <strong>Histórico de Conversas:</strong> Mantém contexto ao longo do tempo</li>
+            </ul>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 className="font-semibold text-red-800 mb-2">Sistema de Detecção de Crise</h4>
+            <p className="text-sm text-red-700 mb-2">
+              O sistema monitora palavras-chave que indicam situações de crise:
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <strong>Crise Nível Alto (8-10):</strong>
+                <ul className="mt-1 space-y-1 text-red-600">
+                  <li>• Menções de suicídio</li>
+                  <li>• Recaídas graves</li>
+                  <li>• Auto-lesão</li>
+                </ul>
               </div>
-
-              <div className="space-y-2">
-                <h4 className="font-semibold">Tecnologias Utilizadas:</h4>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">React</Badge>
-                  <Badge variant="outline">TypeScript</Badge>
-                  <Badge variant="outline">Supabase</Badge>
-                  <Badge variant="outline">Google Gemini AI</Badge>
-                  <Badge variant="outline">Tailwind CSS</Badge>
-                  <Badge variant="outline">shadcn/ui</Badge>
-                </div>
+              <div>
+                <strong>Crise Nível Médio (5-7):</strong>
+                <ul className="mt-1 space-y-1 text-orange-600">
+                  <li>• Solidão extrema</li>
+                  <li>• Tentações fortes</li>
+                  <li>• Ansiedade severa</li>
+                </ul>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="features" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'security',
+      title: 'Sistema de Segurança',
+      icon: Shield,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Segurança Avançada</h3>
+          <p className="text-gray-700">
+            Sistema multicamadas de segurança para proteger dados sensíveis dos usuários.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bot className="w-5 h-5" />
-                  <span>Chatbot Inteligente</span>
-                </CardTitle>
+                <CardTitle className="text-lg">Autenticação</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li>• Powered by Google Gemini AI</li>
-                  <li>• Detecção automática de situações de crise</li>
-                  <li>• Respostas contextuais baseadas no progresso</li>
-                  <li>• Análise de sentimentos em tempo real</li>
-                  <li>• Histórico completo de conversas</li>
-                  <li>• Botões de ação rápida para emergências</li>
+                <ul className="text-sm space-y-1">
+                  <li>• Autenticação via Supabase Auth</li>
+                  <li>• Verificação por email</li>
+                  <li>• Senhas criptografadas</li>
+                  <li>• Sessões seguras</li>
                 </ul>
               </CardContent>
             </Card>
-
+            
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5" />
-                  <span>Sistema de Segurança</span>
-                </CardTitle>
+                <CardTitle className="text-lg">Monitoramento</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li>• Monitoramento de atividades suspeitas</li>
-                  <li>• Logs detalhados de segurança</li>
-                  <li>• Gerenciamento de sessões ativas</li>
-                  <li>• Proteção contra tentativas de invasão</li>
+                <ul className="text-sm space-y-1">
+                  <li>• Logs de segurança</li>
+                  <li>• Detecção de atividade suspeita</li>
+                  <li>• Bloqueio automático</li>
                   <li>• Alertas em tempo real</li>
-                  <li>• Relatórios de segurança</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="w-5 h-5" />
-                  <span>Analytics e Insights</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li>• Rastreamento de progresso de sobriedade</li>
-                  <li>• Análise de padrões de humor</li>
-                  <li>• Relatórios personalizados</li>
-                  <li>• Insights preditivos</li>
-                  <li>• Métricas de engagement</li>
-                  <li>• Visualizações interativas</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="w-5 h-5" />
-                  <span>Backup e Sincronização</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li>• Backup automático diário</li>
-                  <li>• Versionamento de dados</li>
-                  <li>• Sincronização entre dispositivos</li>
-                  <li>• Exportação/importação de dados</li>
-                  <li>• Recuperação de dados</li>
-                  <li>• Validação de integridade</li>
                 </ul>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
 
-        <TabsContent value="technical" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Arquitetura do Sistema</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Frontend</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Aplicação React com TypeScript, utilizando componentes reutilizáveis e hooks customizados.
-                    </p>
-                    <div className="bg-gray-50 p-3 rounded text-sm">
-                      <pre>{`src/
-├── components/          # Componentes UI
-│   ├── ui/             # Componentes base (shadcn/ui)
-│   ├── ChatInterface.tsx
-│   ├── SecurityDashboard.tsx
-│   └── ...
-├── hooks/              # Hooks customizados
-│   ├── useChatbot.tsx
-│   ├── useSecurity.tsx
-│   └── ...
-├── lib/                # Utilitários
-│   └── supabase.ts     # Cliente Supabase
-└── pages/              # Páginas da aplicação`}</pre>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-2">Backend (Supabase)</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Edge Functions para processamento de lógica de negócio e integração com APIs externas.
-                    </p>
-                    <div className="bg-gray-50 p-3 rounded text-sm">
-                      <pre>{`supabase/functions/
-├── chatbot-ai/         # Integração Gemini AI
-├── security-monitor/   # Monitoramento segurança
-├── backup-manager/     # Gerenciamento backup
-└── push-notifications/ # Notificações push`}</pre>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-2">Banco de Dados</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      PostgreSQL com Row Level Security (RLS) para máxima segurança dos dados.
-                    </p>
-                    <div className="bg-gray-50 p-3 rounded text-sm">
-                      <pre>{`Principais tabelas:
-- profiles               # Perfis de usuário
-- sobriety_records      # Jornadas de sobriedade
-- mood_history          # Histórico de humor
-- chat_conversations    # Conversas do chatbot
-- chat_messages         # Mensagens do chat
-- security_logs         # Logs de segurança
-- crisis_responses      # Respostas de crise
-- user_backups         # Backups dos usuários`}</pre>
-                    </div>
-                  </div>
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <h4 className="font-semibold mb-2">Estrutura RLS (Row Level Security)</h4>
+            <p className="text-sm text-gray-600 mb-2">
+              Todas as tabelas utilizam RLS para garantir que usuários só acessem seus próprios dados:
+            </p>
+            <code className="text-xs bg-gray-100 p-2 rounded block">
+              CREATE POLICY "Users can manage own data" ON table_name<br/>
+              FOR ALL USING (auth.uid() = user_id);
+            </code>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'database',
+      title: 'Estrutura do Banco de Dados',
+      icon: Database,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Arquitetura do Banco</h3>
+          <p className="text-gray-700">
+            Estrutura completa das tabelas e relacionamentos no Supabase PostgreSQL.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tabelas Principais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-2">
+                  <li>• <strong>profiles</strong> - Perfis de usuários</li>
+                  <li>• <strong>addiction_types</strong> - Tipos de vícios</li>
+                  <li>• <strong>sobriety_records</strong> - Jornadas de sobriedade</li>
+                  <li>• <strong>mood_history</strong> - Histórico de humor</li>
+                  <li>• <strong>journal_entries</strong> - Diário pessoal</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tabelas do Chatbot</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-2">
+                  <li>• <strong>chat_conversations</strong> - Conversas</li>
+                  <li>• <strong>chat_messages</strong> - Mensagens</li>
+                  <li>• <strong>crisis_responses</strong> - Respostas de crise</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tabelas de Segurança</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-2">
+                  <li>• <strong>security_logs</strong> - Logs de segurança</li>
+                  <li>• <strong>active_sessions</strong> - Sessões ativas</li>
+                  <li>• <strong>failed_login_attempts</strong> - Tentativas de login</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tabelas Avançadas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-2">
+                  <li>• <strong>user_backups</strong> - Backups de dados</li>
+                  <li>• <strong>push_subscriptions</strong> - Notificações</li>
+                  <li>• <strong>usage_analytics</strong> - Analytics</li>
+                  <li>• <strong>user_insights</strong> - Insights IA</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'api',
+      title: 'Edge Functions',
+      icon: Code,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Funções Serverless</h3>
+          <p className="text-gray-700">
+            Edge Functions do Supabase para processamento backend.
+          </p>
+          
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <MessageSquare className="w-5 h-5 mr-2" />
+                  chatbot-ai
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-2">
+                  Processa mensagens do chatbot usando Google Gemini AI
+                </p>
+                <div className="bg-gray-50 p-3 rounded text-xs">
+                  <strong>Endpoint:</strong> /functions/v1/chatbot-ai<br/>
+                  <strong>Método:</strong> POST<br/>
+                  <strong>Payload:</strong> {`{ message, conversationId, userId }`}
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="api" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Referência da API</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px]">
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3">Edge Functions</h4>
-                    
-                    <div className="space-y-4">
-                      <div className="border rounded p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Badge>POST</Badge>
-                          <code className="text-sm">/functions/v1/chatbot-ai</code>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          Processa mensagens do chatbot usando Google Gemini AI
-                        </p>
-                        <div className="bg-gray-50 p-2 rounded text-xs">
-                          <pre>{`{
-  "message": "Como estou me sentindo hoje?",
-  "conversationId": "uuid",
-  "userId": "uuid"
-}`}</pre>
-                        </div>
-                      </div>
-
-                      <div className="border rounded p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Badge>POST</Badge>
-                          <code className="text-sm">/functions/v1/security-monitor</code>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          Registra eventos de segurança e detecta atividades suspeitas
-                        </p>
-                        <div className="bg-gray-50 p-2 rounded text-xs">
-                          <pre>{`{
-  "eventType": "login_attempt",
-  "details": { "success": false },
-  "userId": "uuid",
-  "ipAddress": "192.168.1.1",
-  "userAgent": "Mozilla/5.0..."
-}`}</pre>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3">Principais Hooks</h4>
-                    
-                    <div className="space-y-3">
-                      <div className="bg-gray-50 p-3 rounded">
-                        <code className="text-sm font-medium">useChatbot()</code>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Gerencia conversas do chatbot, envio de mensagens e detecção de crises
-                        </p>
-                      </div>
-                      
-                      <div className="bg-gray-50 p-3 rounded">
-                        <code className="text-sm font-medium">useSecurity()</code>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Monitora atividades de segurança, sessões ativas e logs de eventos
-                        </p>
-                      </div>
-                      
-                      <div className="bg-gray-50 p-3 rounded">
-                        <code className="text-sm font-medium">useSobriety()</code>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Gerencia jornadas de sobriedade, cálculo de streaks e estatísticas
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3">Configuração de Segredos</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Variáveis de ambiente necessárias no Supabase:
-                    </p>
-                    <div className="bg-gray-50 p-3 rounded text-sm">
-                      <pre>{`GEMINI_API_KEY=sua_chave_google_gemini
-SUPABASE_URL=sua_url_supabase
-SUPABASE_ANON_KEY=sua_chave_anonima
-SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role`}</pre>
-                    </div>
-                  </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  security-monitor
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-2">
+                  Monitora eventos de segurança e detecta atividades suspeitas
+                </p>
+                <div className="bg-gray-50 p-3 rounded text-xs">
+                  <strong>Endpoint:</strong> /functions/v1/security-monitor<br/>
+                  <strong>Método:</strong> POST<br/>
+                  <strong>Payload:</strong> {`{ eventType, details }`}
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'components',
+      title: 'Componentes React',
+      icon: Code,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Arquitetura de Componentes</h3>
+          <p className="text-gray-700">
+            Estrutura modular de componentes React com TypeScript.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Componentes Principais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-1">
+                  <li>• <strong>MultiSobrietyDashboard</strong> - Dashboard principal</li>
+                  <li>• <strong>ChatInterface</strong> - Interface do chatbot</li>
+                  <li>• <strong>SecurityDashboard</strong> - Painel de segurança</li>
+                  <li>• <strong>MoodTracker</strong> - Rastreador de humor</li>
+                  <li>• <strong>SobrietyCard</strong> - Cartão de jornada</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Hooks Customizados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-1">
+                  <li>• <strong>useAuth</strong> - Gerenciamento de autenticação</li>
+                  <li>• <strong>useChatbot</strong> - Estado do chatbot</li>
+                  <li>• <strong>useSecurity</strong> - Funcionalidades de segurança</li>
+                  <li>• <strong>useSobriety</strong> - Jornadas de sobriedade</li>
+                  <li>• <strong>useMoodHistory</strong> - Histórico de humor</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'deployment',
+      title: 'Deploy e Configuração',
+      icon: Download,
+      content: (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Guia de Deploy</h3>
+          <p className="text-gray-700">
+            Instruções para configurar e fazer deploy da aplicação.
+          </p>
+          
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Variáveis de Ambiente</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 p-3 rounded text-sm font-mono">
+                  <div>SUPABASE_URL=sua_url_supabase</div>
+                  <div>SUPABASE_ANON_KEY=sua_chave_publica</div>
+                  <div>GEMINI_API_KEY=sua_chave_gemini</div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Configuração do Supabase</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="text-sm space-y-2 list-decimal list-inside">
+                  <li>Criar projeto no Supabase</li>
+                  <li>Executar migrações SQL</li>
+                  <li>Configurar RLS policies</li>
+                  <li>Deploy das Edge Functions</li>
+                  <li>Configurar secrets (GEMINI_API_KEY)</li>
+                </ol>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )
+    }
+  ]
+
+  return (
+    <div className="flex h-[600px] max-w-6xl mx-auto bg-white rounded-lg shadow-lg">
+      {/* Sidebar de navegação */}
+      <div className="w-1/4 border-r border-gray-200 p-4">
+        <div className="flex items-center space-x-2 mb-6">
+          <FileText className="w-6 h-6 text-blue-600" />
+          <h2 className="text-xl font-bold text-gray-900">Documentação</h2>
+        </div>
+        
+        <nav className="space-y-2">
+          {docSections.map((section) => (
+            <Collapsible
+              key={section.id}
+              open={openSections.includes(section.id)}
+              onOpenChange={() => toggleSection(section.id)}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant={activeSection === section.id ? "default" : "ghost"}
+                  className="w-full justify-start text-left"
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <section.icon className="w-4 h-4 mr-2" />
+                  <span className="flex-1">{section.title}</span>
+                  {openSections.includes(section.id) ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronRight className="w-4 h-4" />
+                  }
+                </Button>
+              </CollapsibleTrigger>
+              
+              {section.subsections && (
+                <CollapsibleContent className="ml-6 mt-2 space-y-1">
+                  {section.subsections.map((subsection) => (
+                    <Button
+                      key={subsection.id}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-left text-xs"
+                      onClick={() => setActiveSection(subsection.id)}
+                    >
+                      {subsection.title}
+                    </Button>
+                  ))}
+                </CollapsibleContent>
+              )}
+            </Collapsible>
+          ))}
+        </nav>
+      </div>
+
+      {/* Conteúdo principal */}
+      <div className="flex-1 p-6">
+        <ScrollArea className="h-full">
+          {docSections.find(section => section.id === activeSection)?.content || (
+            <div className="text-center text-gray-500 py-8">
+              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>Selecione uma seção para ver o conteúdo</p>
+            </div>
+          )}
+        </ScrollArea>
+      </div>
     </div>
   )
 }

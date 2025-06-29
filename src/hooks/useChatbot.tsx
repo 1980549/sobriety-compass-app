@@ -41,6 +41,12 @@ export function useChatbot() {
 
       if (error) throw error
       setConversations(data || [])
+      
+      // Se não há conversa atual e existem conversas, seleciona a primeira
+      if (!currentConversationId && data && data.length > 0) {
+        setCurrentConversationId(data[0].id)
+        await loadMessages(data[0].id)
+      }
     } catch (error) {
       console.error('Erro ao carregar conversas:', error)
     }
@@ -69,12 +75,12 @@ export function useChatbot() {
     if (!user) return null
 
     try {
-      const conversationId = crypto.randomUUID()
+      const conversationUuid = crypto.randomUUID()
       const { data, error } = await supabase
         .from('chat_conversations')
         .insert({
           user_id: user.id,
-          conversation_id: conversationId
+          conversation_id: conversationUuid
         })
         .select()
         .single()
@@ -88,13 +94,25 @@ export function useChatbot() {
       return data.id
     } catch (error) {
       console.error('Erro ao criar conversa:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar uma nova conversa",
+        variant: "destructive",
+      })
       return null
     }
   }
 
   // Enviar mensagem
   const sendMessage = async (content: string) => {
-    if (!user || !currentConversationId) return
+    if (!user || !currentConversationId) {
+      // Se não há conversa atual, criar uma nova
+      const newConversationId = await createConversation()
+      if (!newConversationId) return
+    }
+
+    const finalConversationId = currentConversationId || await createConversation()
+    if (!finalConversationId) return
 
     try {
       setIsTyping(true)
@@ -110,19 +128,26 @@ export function useChatbot() {
       }
       setMessages(prev => [...prev, userMessage])
 
+      console.log('Sending message to chatbot:', { content, finalConversationId, userId: user.id })
+
       // Chamar Edge Function do chatbot
       const { data: aiResponse, error } = await supabase.functions.invoke('chatbot-ai', {
         body: {
           message: content,
-          conversationId: currentConversationId,
+          conversationId: finalConversationId,
           userId: user.id
         }
       })
 
-      if (error) throw error
+      if (error) {
+        console.error('Chatbot function error:', error)
+        throw error
+      }
+
+      console.log('Chatbot response:', aiResponse)
 
       // Recarregar mensagens para obter as versões salvas no banco
-      await loadMessages(currentConversationId)
+      await loadMessages(finalConversationId)
 
       // Se crise detectada, mostrar alerta
       if (aiResponse.crisisDetected) {
@@ -140,6 +165,9 @@ export function useChatbot() {
         description: "Não foi possível enviar a mensagem. Tente novamente.",
         variant: "destructive",
       })
+      
+      // Remover mensagem do usuário da interface se houve erro
+      setMessages(prev => prev.slice(0, -1))
     } finally {
       setLoading(false)
       setIsTyping(false)

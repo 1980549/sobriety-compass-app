@@ -21,6 +21,8 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
+    console.log('Chatbot AI - Processing message:', { message, conversationId, userId })
+
     // Verificar se há situação de crise
     const { data: crisisResponses } = await supabaseClient
       .from('crisis_responses')
@@ -46,6 +48,8 @@ serve(async (req) => {
 
     // Se situação de crise, usar resposta pré-definida
     if (crisisDetected && crisisResponse) {
+      console.log('Crisis detected:', { crisisLevel, keywords: crisisResponse.trigger_keywords })
+      
       // Salvar mensagem do usuário
       await supabaseClient
         .from('chat_messages')
@@ -120,6 +124,8 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY não configurada')
     }
 
+    console.log('Calling Gemini API with context:', context.substring(0, 100) + '...')
+
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
@@ -163,14 +169,18 @@ serve(async (req) => {
     })
 
     if (!geminiResponse.ok) {
-      throw new Error(`Erro na API do Gemini: ${geminiResponse.status}`)
+      const errorText = await geminiResponse.text()
+      console.error('Gemini API Error:', errorText)
+      throw new Error(`Erro na API do Gemini: ${geminiResponse.status} - ${errorText}`)
     }
 
     const geminiData = await geminiResponse.json()
+    console.log('Gemini response:', JSON.stringify(geminiData, null, 2))
+    
     const aiResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui processar sua mensagem no momento."
 
     // Salvar mensagens no banco
-    await supabaseClient
+    const { error: insertError } = await supabaseClient
       .from('chat_messages')
       .insert([
         {
@@ -189,6 +199,10 @@ serve(async (req) => {
         }
       ])
 
+    if (insertError) {
+      console.error('Error saving messages:', insertError)
+    }
+
     return new Response(
       JSON.stringify({
         response: aiResponse,
@@ -201,7 +215,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in chatbot-ai function:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

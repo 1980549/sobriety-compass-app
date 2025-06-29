@@ -22,8 +22,10 @@ export function TestSuite() {
     { name: 'CRUD de jornadas de sobriedade', status: 'pending' },
     { name: 'Sistema de humor', status: 'pending' },
     { name: 'Chatbot com Gemini AI', status: 'pending' },
-    { name: 'Sistema de segurança', status: 'pending' },
     { name: 'Detecção de crise', status: 'pending' },
+    { name: 'Sistema de segurança', status: 'pending' },
+    { name: 'Conversas do chatbot', status: 'pending' },
+    { name: 'Mensagens do chat', status: 'pending' },
     { name: 'Backup e sincronização', status: 'pending' },
     { name: 'Notificações push', status: 'pending' },
     { name: 'Analytics e insights', status: 'pending' }
@@ -65,7 +67,7 @@ export function TestSuite() {
     
     toast({
       title: "Testes concluídos",
-      description: `${passed} passou, ${failed} falharam`,
+      description: `${passed} passaram, ${failed} falharam`,
       variant: failed > 0 ? "destructive" : "default"
     })
   }
@@ -98,22 +100,19 @@ export function TestSuite() {
         if (moodError) throw moodError
         break
         
-      case 4: // Chatbot
+      case 4: // Chatbot com Gemini
         const { data: chatData, error: chatError } = await supabase.functions.invoke('chatbot-ai', {
-          body: { message: 'teste', conversationId: 'test', userId: 'test' }
+          body: { 
+            message: 'Olá, este é um teste do sistema de chatbot', 
+            conversationId: crypto.randomUUID(), 
+            userId: (await supabase.auth.getUser()).data.user?.id || 'test' 
+          }
         })
         if (chatError) throw chatError
+        if (!chatData?.response) throw new Error('Resposta do chatbot vazia')
         break
         
-      case 5: // Sistema de segurança
-        const { data: securityData, error: securityError } = await supabase
-          .from('security_logs')
-          .select('*')
-          .limit(1)
-        if (securityError) throw securityError
-        break
-        
-      case 6: // Detecção de crise
+      case 5: // Detecção de crise
         const { data: crisisData, error: crisisError } = await supabase
           .from('crisis_responses')
           .select('*')
@@ -121,7 +120,31 @@ export function TestSuite() {
         if (crisisError) throw crisisError
         break
         
-      case 7: // Backup
+      case 6: // Sistema de segurança
+        const { data: securityData, error: securityError } = await supabase
+          .from('security_logs')
+          .select('*')
+          .limit(1)
+        if (securityError) throw securityError
+        break
+        
+      case 7: // Conversas do chatbot
+        const { data: conversationData, error: conversationError } = await supabase
+          .from('chat_conversations')
+          .select('*')
+          .limit(1)
+        if (conversationError) throw conversationError
+        break
+        
+      case 8: // Mensagens do chat
+        const { data: messageData, error: messageError } = await supabase
+          .from('chat_messages')
+          .select('*')
+          .limit(1)
+        if (messageError) throw messageError
+        break
+        
+      case 9: // Backup
         const { data: backupData, error: backupError } = await supabase
           .from('user_backups')
           .select('*')
@@ -129,7 +152,7 @@ export function TestSuite() {
         if (backupError) throw backupError
         break
         
-      case 8: // Notificações
+      case 10: // Notificações
         const { data: notifData, error: notifError } = await supabase
           .from('push_subscriptions')
           .select('*')
@@ -137,7 +160,7 @@ export function TestSuite() {
         if (notifError) throw notifError
         break
         
-      case 9: // Analytics
+      case 11: // Analytics
         const { data: analyticsData, error: analyticsError } = await supabase
           .from('usage_analytics')
           .select('*')
