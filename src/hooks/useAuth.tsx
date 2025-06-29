@@ -24,15 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log('Inicializando Auth Provider...')
     
-    // Obter sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Sessão inicial:', session)
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Escutar mudanças de autenticação
+    // Configurar listener de mudanças de autenticação primeiro
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -42,7 +34,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Depois verificar sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Sessão inicial:', session)
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    return () => {
+      console.log('Limpando subscription do Auth Provider')
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signUp = async (email: string, password: string, nome?: string) => {
@@ -54,7 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           data: {
             display_name: nome || email.split('@')[0]
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       })
 

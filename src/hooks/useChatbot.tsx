@@ -30,7 +30,10 @@ export function useChatbot() {
 
   // Carregar conversas
   const loadConversations = async () => {
-    if (!user) return
+    if (!user) {
+      console.log('loadConversations: usuário não autenticado')
+      return
+    }
 
     try {
       const { data, error } = await supabase
@@ -54,7 +57,10 @@ export function useChatbot() {
 
   // Carregar mensagens de uma conversa
   const loadMessages = async (conversationId: string) => {
-    if (!user) return
+    if (!user) {
+      console.log('loadMessages: usuário não autenticado')
+      return
+    }
 
     try {
       const { data, error } = await supabase
@@ -72,7 +78,10 @@ export function useChatbot() {
 
   // Criar nova conversa
   const createConversation = async () => {
-    if (!user) return null
+    if (!user) {
+      console.log('createConversation: usuário não autenticado')
+      return null
+    }
 
     try {
       const conversationUuid = crypto.randomUUID()
@@ -105,7 +114,17 @@ export function useChatbot() {
 
   // Enviar mensagem
   const sendMessage = async (content: string) => {
-    if (!user || !currentConversationId) {
+    if (!user) {
+      console.log('sendMessage: usuário não autenticado')
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para enviar mensagens",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (!currentConversationId) {
       // Se não há conversa atual, criar uma nova
       const newConversationId = await createConversation()
       if (!newConversationId) return
@@ -182,7 +201,13 @@ export function useChatbot() {
 
   useEffect(() => {
     if (user) {
+      console.log('useChatbot: carregando conversas para usuário autenticado')
       loadConversations()
+    } else {
+      console.log('useChatbot: usuário não autenticado, limpando estado')
+      setMessages([])
+      setConversations([])
+      setCurrentConversationId(null)
     }
   }, [user])
 

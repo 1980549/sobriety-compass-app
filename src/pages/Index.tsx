@@ -1,33 +1,45 @@
 
 import { useAuth } from "@/hooks/useAuth";
-import { AuthPages } from "@/components/AuthPages";
 import { MultiSobrietyDashboard } from "@/components/MultiSobrietyDashboard";
 import { ChatInterface } from "@/components/ChatInterface";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { TestSuite } from "@/components/TestSuite";
 import { Documentation } from "@/components/Documentation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Shield, TestTube, FileText, Home } from "lucide-react";
+import { MessageSquare, Shield, TestTube, FileText, Home, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const { user, signOut } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthPages />;
-  }
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-lg p-6">
+          {/* Header com informações do usuário e logout */}
+          <div className="flex justify-between items-center mb-6 pb-4 border-b">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Jornada de Sobriedade
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Bem-vindo, {user?.email || 'Usuário'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="flex items-center space-x-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sair</span>
+            </Button>
+          </div>
+
           <Tabs defaultValue="dashboard" className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="dashboard" className="flex items-center space-x-2">
