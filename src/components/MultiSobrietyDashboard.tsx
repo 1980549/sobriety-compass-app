@@ -1,259 +1,187 @@
-
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Calendar, Trophy, DollarSign, Target, Heart } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { useSobriety } from '@/hooks/useSobriety'
-import { useMoodHistory } from '@/hooks/useMoodHistory'
-import { useAchievements } from '@/hooks/useAchievements'
-import { useAuth } from '@/hooks/useAuth'
 import { SobrietyCard } from './SobrietyCard'
 import { StartJourneyModal } from './StartJourneyModal'
 import { JournalModal } from './JournalModal'
 import { AchievementsModal } from './AchievementsModal'
 import { MoodTracker } from './MoodTracker'
-import { SavingsTracker } from './SavingsTracker'
-import { EmergencyButton } from './EmergencyButton'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Plus, LogOut, Calendar, TrendingUp, Target, BookOpen, Trophy } from 'lucide-react'
 
-export function MultiSobrietyDashboard() {
-  const { user, signOut } = useAuth()
-  const { records, loading } = useSobriety()
-  const { getMoodStats } = useMoodHistory()
-  const { userAchievements, checkDaysAchievements, checkMoneyAchievements } = useAchievements()
-  const [showStartModal, setShowStartModal] = useState(false)
-  const [showJournalModal, setShowJournalModal] = useState(false)
-  const [showAchievementsModal, setShowAchievementsModal] = useState(false)
+const MultiSobrietyDashboard = () => {
+  const { 
+    sobrietyRecords, 
+    addSobrietyRecord, 
+    updateSobrietyRecord,
+  } = useSobriety()
 
-  // Atualizar contadores e verificar conquistas
+  const [isStartModalOpen, setIsStartModalOpen] = useState(false)
+  const [isJournalModalOpen, setIsJournalModalOpen] = useState(false)
+  const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false)
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Força re-render dos componentes para atualizar contadores
-      window.dispatchEvent(new Event('sobriety-update'))
-      
-      // Verificar conquistas baseadas em dias
-      records.forEach(record => {
-        checkDaysAchievements(record)
-      })
+    // console.log('Registros de sobriedade:', sobrietyRecords)
+  }, [sobrietyRecords])
 
-      // Verificar conquistas de economia
-      const totalSavings = records.reduce((sum, record) => {
-        if (record.daily_cost) {
-          return sum + (record.daily_cost * record.current_streak_days)
-        }
-        return sum
-      }, 0)
-      
-      if (totalSavings > 0) {
-        checkMoneyAchievements(totalSavings)
-      }
-    }, 60000) // 1 minuto
+  const handleNewJourney = async (newRecord: any) => {
+    await addSobrietyRecord(newRecord)
+    setIsStartModalOpen(false)
+  }
 
-    return () => clearInterval(interval)
-  }, [records, checkDaysAchievements, checkMoneyAchievements])
+  const handleUpdateRecord = async (updatedRecord: any) => {
+    await updateSobrietyRecord(updatedRecord)
+  }
 
-  const moodStats = getMoodStats()
-  const totalDays = records.reduce((sum, record) => sum + record.current_streak_days, 0)
-  const totalSavings = records.reduce((sum, record) => {
-    if (record.daily_cost) {
-      return sum + (record.daily_cost * record.current_streak_days)
-    }
-    return sum
-  }, 0)
+  const getTotalDays = () => {
+    return sobrietyRecords.reduce((acc, record) => acc + record.current_streak, 0)
+  }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Carregando suas jornadas...</p>
-        </div>
-      </div>
-    )
+  const getBestStreak = () => {
+    return sobrietyRecords.reduce((acc, record) => Math.max(acc, record.longest_streak), 0)
+  }
+
+  const getTotalSavings = () => {
+    return sobrietyRecords.reduce((acc, record) => acc + record.money_saved, 0).toFixed(2)
+  }
+
+  const getActiveJourneys = () => {
+    return sobrietyRecords.filter(record => record.is_active).length
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm">🌟</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Jornada de Sobriedade</h1>
-              <p className="text-sm text-gray-600">Olá, {user?.email?.split('@')[0]}!</p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={signOut}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - responsivo */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Suas Jornadas de Sobriedade
+          </h2>
+          <p className="text-sm sm:text-base text-gray-600">
+            Acompanhe seu progresso e conquiste suas metas
+          </p>
         </div>
+        <Button 
+          onClick={() => setIsStartModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base"
+          size="sm"
+        >
+          <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+          Nova Jornada
+        </Button>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Resumo Geral */}
-        {records.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-sm font-medium text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Total de Dias
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-indigo-600">{totalDays}</div>
-                <p className="text-xs text-gray-500">
-                  {records.length} jornada{records.length !== 1 ? 's' : ''} ativa{records.length !== 1 ? 's' : ''}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-sm font-medium text-gray-600">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Humor Médio
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-indigo-600">
-                  {moodStats ? `${moodStats.overall}/5` : '--'}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {moodStats ? `${moodStats.totalEntries} registros` : 'Nenhum registro'}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-sm font-medium text-gray-600">
-                  <Target className="w-4 h-4 mr-2" />
-                  Economia
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  R$ {totalSavings.toFixed(2)}
-                </div>
-                <p className="text-xs text-gray-500">Total economizado</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-sm font-medium text-gray-600">
-                  <Trophy className="w-4 h-4 mr-2" />
-                  Conquistas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">
-                  {userAchievements.length}
-                </div>
-                <p className="text-xs text-gray-500">Desbloqueadas</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Botão de Emergência e Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start">
-          <EmergencyButton />
-          <div className="flex gap-2 flex-wrap">
+      {/* Cards de jornadas - grid responsivo */}
+      {sobrietyRecords.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          {sobrietyRecords.map((record) => (
+            <SobrietyCard 
+              key={record.id} 
+              record={record} 
+              onUpdate={handleUpdateRecord}
+              className="w-full"
+            />
+          ))}
+        </div>
+      ) : (
+        <Card className="p-6 sm:p-8 text-center">
+          <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+            <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-indigo-300" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Comece sua jornada hoje
+            </h3>
+            <p className="text-sm sm:text-base text-gray-600 max-w-md">
+              Dê o primeiro passo rumo à sua recuperação. Cada dia é uma nova oportunidade.
+            </p>
             <Button 
-              onClick={() => setShowStartModal(true)}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              onClick={() => setIsStartModalOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 mt-3 sm:mt-4"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nova Jornada
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setShowJournalModal(true)}
-            >
-              <BookOpen className="w-4 h-4 mr-2" />
-              Escrever no Diário
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setShowAchievementsModal(true)}
-            >
-              <Trophy className="w-4 h-4 mr-2" />
-              Conquistas
+              Iniciar Primeira Jornada
             </Button>
           </div>
-        </div>
+        </Card>
+      )}
 
-        {/* Mood Tracker */}
-        <MoodTracker />
-
-        {/* Jornadas Ativas */}
-        {records.length === 0 ? (
-          <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto mb-4 w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-3xl">🌱</span>
+      {/* Seção de estatísticas - layout responsivo */}
+      {sobrietyRecords.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Total de Dias</p>
+                <p className="text-lg sm:text-2xl font-bold text-indigo-600">
+                  {getTotalDays()}
+                </p>
               </div>
-              <CardTitle>Bem-vindo à sua jornada!</CardTitle>
-              <CardDescription>
-                Comece sua primeira jornada de sobriedade e acompanhe seu progresso.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button 
-                onClick={() => setShowStartModal(true)}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Iniciar Primeira Jornada
-              </Button>
-            </CardContent>
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-500" />
+            </div>
           </Card>
-        ) : (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Suas Jornadas</h2>
-              <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
-                {records.length} ativa{records.length !== 1 ? 's' : ''}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {records.map((record) => (
-                <SobrietyCard key={record.id} record={record} />
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Savings Tracker */}
-        {records.some(r => r.daily_cost) && <SavingsTracker />}
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Melhor Sequência</p>
+                <p className="text-lg sm:text-2xl font-bold text-green-600">
+                  {getBestStreak()}
+                </p>
+              </div>
+              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
+            </div>
+          </Card>
+
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Dinheiro Economizado</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">
+                  R$ {getTotalSavings()}
+                </p>
+              </div>
+              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500" />
+            </div>
+          </Card>
+
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Jornadas Ativas</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
+                  {getActiveJourneys()}
+                </p>
+              </div>
+              <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Mood Tracker - responsivo */}
+      <div className="mt-6 sm:mt-8">
+        <MoodTracker />
       </div>
 
       {/* Modais */}
       <StartJourneyModal 
-        open={showStartModal} 
-        onOpenChange={setShowStartModal} 
+        isOpen={isStartModalOpen}
+        onClose={() => setIsStartModalOpen(false)}
+        onSuccess={handleNewJourney}
       />
-      
-      <JournalModal 
-        open={showJournalModal} 
-        onOpenChange={setShowJournalModal} 
+
+      <JournalModal
+        isOpen={isJournalModalOpen}
+        onClose={() => setIsJournalModalOpen(false)}
+        sobrietyRecords={sobrietyRecords}
       />
-      
-      <AchievementsModal 
-        open={showAchievementsModal} 
-        onOpenChange={setShowAchievementsModal} 
+
+      <AchievementsModal
+        isOpen={isAchievementsModalOpen}
+        onClose={() => setIsAchievementsModalOpen(false)}
+        sobrietyRecords={sobrietyRecords}
       />
     </div>
   )
 }
+
+export default MultiSobrietyDashboard

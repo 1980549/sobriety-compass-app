@@ -1,106 +1,120 @@
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
 import { useToast } from '@/hooks/use-toast'
+import { ChatMessage, ChatConversation, ChatbotState } from './chatbot/types'
+import { 
+  loadConversations, 
+  loadMessages, 
+  createNewConversation, 
+  sendMessageToAI 
+} from './chatbot/api'
+import { 
+  createUserMessage, 
+  validateMessage, 
+  isCrisisDetected, 
+  getCrisisAlertType 
+} from './chatbot/utils'
 
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  message_type: 'text' | 'crisis' | 'encouragement' | 'question'
-  crisis_level?: number
-  created_at: string
-}
+// Re-exporta tipos para compatibilidade
+export type { ChatMessage, ChatConversation }
 
-export interface ChatConversation {
-  id: string
-  conversation_id: string
-  created_at: string
-}
-
+/**
+ * Hook principal para gerenciar o chatbot AI
+ * Fornece funcionalidades de conversas, mensagens e comunicação com IA
+ */
 export function useChatbot() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [conversations, setConversations] = useState<ChatConversation[]>([])
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
+  
+  // Estado centralizado do chatbot
+  const [state, setState] = useState<ChatbotState>({
+    messages: [],
+    conversations: [],
+    currentConversationId: null,
+    loading: false,
+    isTyping: false
+  })
 
-  // Carregar conversas
-  const loadConversations = async () => {
+  /**
+   * Atualiza o estado de forma segura
+   */
+  const updateState = (updates: Partial<ChatbotState>) => {
+    setState(prev => ({ ...prev, ...updates }))
+  }
+
+  /**
+   * Carrega todas as conversas do usuário
+   */
+  const refreshConversations = async () => {
     if (!user) {
-      console.log('loadConversations: usuário não autenticado')
+      console.log('refreshConversations: usuário não autenticado')
       return
     }
 
     try {
-      const { data, error } = await supabase
-        .from('chat_conversations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setConversations(data || [])
+      const conversations = await loadConversations(user.id)
+      updateState({ conversations })
       
       // Se não há conversa atual e existem conversas, seleciona a primeira
-      if (!currentConversationId && data && data.length > 0) {
-        setCurrentConversationId(data[0].id)
-        await loadMessages(data[0].id)
+      if (!state.currentConversationId && conversations.length > 0) {
+        await selectConversation(conversations[0].id)
       }
     } catch (error) {
       console.error('Erro ao carregar conversas:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as conversas",
+        variant: "destructive",
+      })
     }
   }
 
-  // Carregar mensagens de uma conversa
-  const loadMessages = async (conversationId: string) => {
+  /**
+   * Seleciona uma conversa e carrega suas mensagens
+   */
+  const selectConversation = async (conversationId: string) => {
     if (!user) {
-      console.log('loadMessages: usuário não autenticado')
+      console.log('selectConversation: usuário não autenticado')
       return
     }
 
     try {
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      setMessages(data || [])
+      updateState({ currentConversationId: conversationId })
+      const messages = await loadMessages(conversationId)
+      updateState({ messages })
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as mensagens",
+        variant: "destructive",
+      })
     }
   }
 
-  // Criar nova conversa
+  /**
+   * Cria uma nova conversa
+   */
   const createConversation = async () => {
     if (!user) {
       console.log('createConversation: usuário não autenticado')
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para criar conversas",
+        variant: "destructive",
+      })
       return null
     }
 
     try {
-      const conversationUuid = crypto.randomUUID()
-      const { data, error } = await supabase
-        .from('chat_conversations')
-        .insert({
-          user_id: user.id,
-          conversation_id: conversationUuid
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      
-      setCurrentConversationId(data.id)
-      setMessages([])
-      await loadConversations()
-      
-      return data.id
+      const newConversationId = await createNewConversation(user.id)
+      updateState({ 
+        currentConversationId: newConversationId,
+        messages: []
+      })
+      await refreshConversations()
+      return newConversationId
     } catch (error) {
       console.error('Erro ao criar conversa:', error)
       toast({
@@ -112,7 +126,9 @@ export function useChatbot() {
     }
   }
 
-  // Enviar mensagem
+  /**
+   * Envia uma mensagem para o chatbot
+   */
   const sendMessage = async (content: string) => {
     if (!user) {
       console.log('sendMessage: usuário não autenticado')
@@ -124,56 +140,39 @@ export function useChatbot() {
       return
     }
     
-    if (!currentConversationId) {
-      // Se não há conversa atual, criar uma nova
-      const newConversationId = await createConversation()
-      if (!newConversationId) return
+    if (!validateMessage(content)) {
+      return
     }
 
-    const finalConversationId = currentConversationId || await createConversation()
-    if (!finalConversationId) return
+    // Garante que existe uma conversa
+    let conversationId = state.currentConversationId
+    if (!conversationId) {
+      conversationId = await createConversation()
+      if (!conversationId) return
+    }
 
     try {
-      setIsTyping(true)
-      setLoading(true)
+      updateState({ isTyping: true, loading: true })
 
-      // Adicionar mensagem do usuário à interface imediatamente
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content,
-        message_type: 'text',
-        created_at: new Date().toISOString()
-      }
-      setMessages(prev => [...prev, userMessage])
-
-      console.log('Sending message to chatbot:', { content, finalConversationId, userId: user.id })
-
-      // Chamar Edge Function do chatbot
-      const { data: aiResponse, error } = await supabase.functions.invoke('chatbot-ai', {
-        body: {
-          message: content,
-          conversationId: finalConversationId,
-          userId: user.id
-        }
+      // Adiciona mensagem do usuário imediatamente
+      const userMessage = createUserMessage(content)
+      updateState({ 
+        messages: [...state.messages, userMessage]
       })
 
-      if (error) {
-        console.error('Chatbot function error:', error)
-        throw error
-      }
+      // Envia para o chatbot AI
+      const aiResponse = await sendMessageToAI(content, conversationId, user.id)
 
-      console.log('Chatbot response:', aiResponse)
+      // Recarrega mensagens para obter versões atualizadas do banco
+      const updatedMessages = await loadMessages(conversationId)
+      updateState({ messages: updatedMessages })
 
-      // Recarregar mensagens para obter as versões salvas no banco
-      await loadMessages(finalConversationId)
-
-      // Se crise detectada, mostrar alerta
-      if (aiResponse.crisisDetected) {
+      // Verifica se crise foi detectada
+      if (aiResponse.crisisDetected && aiResponse.crisisLevel) {
         toast({
           title: "Situação de crise detectada",
           description: "Lembre-se: você não está sozinho. Recursos de ajuda estão disponíveis.",
-          variant: aiResponse.crisisLevel >= 8 ? "destructive" : "default",
+          variant: getCrisisAlertType(aiResponse.crisisLevel),
         })
       }
 
@@ -185,41 +184,41 @@ export function useChatbot() {
         variant: "destructive",
       })
       
-      // Remover mensagem do usuário da interface se houve erro
-      setMessages(prev => prev.slice(0, -1))
+      // Remove mensagem do usuário se houve erro
+      updateState({ 
+        messages: state.messages.slice(0, -1)
+      })
     } finally {
-      setLoading(false)
-      setIsTyping(false)
+      updateState({ loading: false, isTyping: false })
     }
   }
 
-  // Selecionar conversa
-  const selectConversation = async (conversationId: string) => {
-    setCurrentConversationId(conversationId)
-    await loadMessages(conversationId)
-  }
-
+  // Efeito para carregar dados quando usuário autentica
   useEffect(() => {
     if (user) {
-      console.log('useChatbot: carregando conversas para usuário autenticado')
-      loadConversations()
+      console.log('useChatbot: carregando dados para usuário autenticado')
+      refreshConversations()
     } else {
       console.log('useChatbot: usuário não autenticado, limpando estado')
-      setMessages([])
-      setConversations([])
-      setCurrentConversationId(null)
+      setState({
+        messages: [],
+        conversations: [],
+        currentConversationId: null,
+        loading: false,
+        isTyping: false
+      })
     }
   }, [user])
 
   return {
-    messages,
-    conversations,
-    currentConversationId,
-    loading,
-    isTyping,
+    messages: state.messages,
+    conversations: state.conversations,
+    currentConversationId: state.currentConversationId,
+    loading: state.loading,
+    isTyping: state.isTyping,
     sendMessage,
     createConversation,
     selectConversation,
-    refreshConversations: loadConversations,
+    refreshConversations,
   }
 }
