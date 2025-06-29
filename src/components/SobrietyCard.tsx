@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { SobrietyRecord } from '@/lib/supabase'
 import { useSobriety } from '@/hooks/useSobriety'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +15,7 @@ interface SobrietyCardProps {
 
 export function SobrietyCard({ record }: SobrietyCardProps) {
   const { endJourney } = useSobriety()
-  const [currentDays, setCurrentDays] = useState(record.current_streak_days)
+  const [currentDays, setCurrentDays] = useState(record.current_streak_days || 0)
 
   // Atualizar dias em tempo real
   useEffect(() => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react'
 import { Plus, Calendar, Trophy, DollarSign, Target, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,9 +12,9 @@ import { MoodTracker } from './MoodTracker'
 
 const MultiSobrietyDashboard = () => {
   const { 
-    sobrietyRecords, 
-    addSobrietyRecord, 
-    updateSobrietyRecord,
+    records,
+    startJourney,
+    refreshRecords
   } = useSobriety()
 
   const [isStartModalOpen, setIsStartModalOpen] = useState(false)
@@ -21,32 +22,32 @@ const MultiSobrietyDashboard = () => {
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false)
 
   useEffect(() => {
-    // console.log('Registros de sobriedade:', sobrietyRecords)
-  }, [sobrietyRecords])
+    // console.log('Registros de sobriedade:', records)
+  }, [records])
 
   const handleNewJourney = async (newRecord: any) => {
-    await addSobrietyRecord(newRecord)
+    await refreshRecords()
     setIsStartModalOpen(false)
   }
 
-  const handleUpdateRecord = async (updatedRecord: any) => {
-    await updateSobrietyRecord(updatedRecord)
-  }
-
   const getTotalDays = () => {
-    return sobrietyRecords.reduce((acc, record) => acc + record.current_streak, 0)
+    return records.reduce((acc, record) => acc + (record.current_streak_days || 0), 0)
   }
 
   const getBestStreak = () => {
-    return sobrietyRecords.reduce((acc, record) => Math.max(acc, record.longest_streak), 0)
+    return records.reduce((acc, record) => Math.max(acc, record.best_streak_days || 0), 0)
   }
 
   const getTotalSavings = () => {
-    return sobrietyRecords.reduce((acc, record) => acc + record.money_saved, 0).toFixed(2)
+    return records.reduce((acc, record) => {
+      const dailyCost = record.daily_cost || 0
+      const days = record.current_streak_days || 0
+      return acc + (dailyCost * days)
+    }, 0).toFixed(2)
   }
 
   const getActiveJourneys = () => {
-    return sobrietyRecords.filter(record => record.is_active).length
+    return records.filter(record => record.is_active).length
   }
 
   return (
@@ -72,14 +73,12 @@ const MultiSobrietyDashboard = () => {
       </div>
 
       {/* Cards de jornadas - grid responsivo */}
-      {sobrietyRecords.length > 0 ? (
+      {records.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-          {sobrietyRecords.map((record) => (
+          {records.map((record) => (
             <SobrietyCard 
               key={record.id} 
-              record={record} 
-              onUpdate={handleUpdateRecord}
-              className="w-full"
+              record={record}
             />
           ))}
         </div>
@@ -105,7 +104,7 @@ const MultiSobrietyDashboard = () => {
       )}
 
       {/* Seção de estatísticas - layout responsivo */}
-      {sobrietyRecords.length > 0 && (
+      {records.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
@@ -164,21 +163,18 @@ const MultiSobrietyDashboard = () => {
 
       {/* Modais */}
       <StartJourneyModal 
-        isOpen={isStartModalOpen}
-        onClose={() => setIsStartModalOpen(false)}
-        onSuccess={handleNewJourney}
+        open={isStartModalOpen}
+        onOpenChange={setIsStartModalOpen}
       />
 
       <JournalModal
-        isOpen={isJournalModalOpen}
-        onClose={() => setIsJournalModalOpen(false)}
-        sobrietyRecords={sobrietyRecords}
+        open={isJournalModalOpen}
+        onOpenChange={setIsJournalModalOpen}
       />
 
       <AchievementsModal
-        isOpen={isAchievementsModalOpen}
-        onClose={() => setIsAchievementsModalOpen(false)}
-        sobrietyRecords={sobrietyRecords}
+        open={isAchievementsModalOpen}
+        onOpenChange={setIsAchievementsModalOpen}
       />
     </div>
   )

@@ -1,4 +1,5 @@
 
+import React from 'react'
 import { useAchievements } from '@/hooks/useAchievements'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,11 +24,11 @@ export function AchievementsModal({ open, onOpenChange }: AchievementsModalProps
     let current = 0
     
     if (achievement.requirement_type === 'days') {
-      current = Math.max(...records.map(r => r.current_streak_days), 0)
+      current = Math.max(...records.map(r => r.current_streak_days || 0), 0)
     } else if (achievement.requirement_type === 'money_saved') {
       current = records.reduce((sum, record) => {
         if (record.daily_cost) {
-          return sum + (record.daily_cost * record.current_streak_days)
+          return sum + (record.daily_cost * (record.current_streak_days || 0))
         }
         return sum
       }, 0)

@@ -1,49 +1,129 @@
-
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, AlertTriangle, Heart } from 'lucide-react'
+import { useChatbot } from '@/hooks/useChatbot'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useChatbot, ChatMessage } from '@/hooks/useChatbot'
-import { useEmergencyContacts } from '@/hooks/useEmergencyContacts'
-import { EmergencyButton } from './EmergencyButton'
+import { Send, Bot, User, AlertCircle, Heart, MessageSquare, RefreshCw } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+
+function MessageBubble({ message }: { message: any }) {
+  const isUser = message.role === 'user'
+  const isCrisis = message.message_type === 'crisis'
+  const isEncouragement = message.message_type === 'encouragement'
+  
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 sm:mb-4`}>
+      <div className={`flex items-start space-x-2 max-w-[85%] sm:max-w-[80%] ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+          isUser 
+            ? 'bg-indigo-500' 
+            : isCrisis 
+              ? 'bg-red-500' 
+              : isEncouragement 
+                ? 'bg-green-500' 
+                : 'bg-gray-500'
+        }`}>
+          {isUser ? (
+            <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+          ) : isCrisis ? (
+            <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+          ) : (
+            <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+          )}
+        </div>
+        
+        <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
+          isUser 
+            ? 'bg-indigo-500 text-white' 
+            : isCrisis 
+              ? 'bg-red-50 border-2 border-red-200' 
+              : isEncouragement 
+                ? 'bg-green-50 border-2 border-green-200'
+                : 'bg-gray-100'
+        }`}>
+          {isCrisis && (
+            <div className="flex items-center space-x-1 mb-2">
+              <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
+              <Badge variant="destructive" className="text-xs">
+                Suporte de Crise
+              </Badge>
+            </div>
+          )}
+          
+          {isEncouragement && (
+            <div className="flex items-center space-x-1 mb-2">
+              <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+              <Badge className="bg-green-100 text-green-800 text-xs">
+                Encorajamento
+              </Badge>
+            </div>
+          )}
+          
+          <p className={`text-xs sm:text-sm leading-relaxed ${
+            isUser 
+              ? 'text-white' 
+              : isCrisis 
+                ? 'text-red-800' 
+                : isEncouragement 
+                  ? 'text-green-800'
+                  : 'text-gray-800'
+          }`}>
+            {message.content}
+          </p>
+          
+          <p className={`text-xs mt-2 ${
+            isUser 
+              ? 'text-indigo-200' 
+              : 'text-gray-500'
+          }`}>
+            {formatDistanceToNow(new Date(message.created_at), { 
+              addSuffix: true, 
+              locale: ptBR 
+            })}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ChatInterface() {
   const { 
     messages, 
-    conversations, 
-    currentConversationId, 
-    loading, 
-    isTyping, 
     sendMessage, 
-    createConversation,
-    selectConversation 
+    loading, 
+    conversations,
+    startNewConversation,
+    loadConversation 
   } = useChatbot()
   
   const [inputMessage, setInputMessage] = useState('')
-  const [showSidebar, setShowSidebar] = useState(false)
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { contacts } = useEmergencyContacts()
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  const { toast } = useToast()
 
   useEffect(() => {
-    scrollToBottom()
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || loading) return
 
-    if (!currentConversationId) {
-      await createConversation()
+    try {
+      await sendMessage(inputMessage.trim())
+      setInputMessage('')
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a mensagem. Tente novamente.",
+        variant: "destructive",
+      })
     }
-
-    await sendMessage(inputMessage.trim())
-    setInputMessage('')
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -53,231 +133,89 @@ export function ChatInterface() {
     }
   }
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getCrisisBadgeColor = (crisisLevel?: number) => {
-    if (!crisisLevel) return null
-    if (crisisLevel >= 8) return 'destructive'
-    if (crisisLevel >= 5) return 'secondary'
-    return 'default'
+  const handleNewConversation = async () => {
+    try {
+      await startNewConversation()
+      setSelectedConversation(null)
+      toast({
+        title: "Nova conversa iniciada",
+        description: "Você pode começar uma nova conversa agora.",
+      })
+    } catch (error) {
+      console.error('Erro ao iniciar nova conversa:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível iniciar nova conversa.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-[600px] max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Mobile conversation toggle */}
-      <div className="lg:hidden flex items-center justify-between p-3 border-b bg-gray-50">
-        <h3 className="font-semibold text-gray-800">Chat AI</h3>
-        <div className="flex items-center space-x-2">
-          <Button 
-            size="sm" 
-            onClick={createConversation}
-            className="bg-blue-500 hover:bg-blue-600 text-xs"
-          >
-            + Nova
-          </Button>
-          <Button 
-            variant="outline"
-            size="sm" 
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="text-xs"
-          >
-            Conversas
-          </Button>
-        </div>
-      </div>
-
-      {/* Sidebar com conversas - responsivo */}
-      <div className={`${showSidebar ? 'block' : 'hidden'} lg:block w-full lg:w-1/4 border-r border-gray-200 p-3 lg:p-4 bg-gray-50 lg:bg-white`}>
-        <div className="hidden lg:flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800">Conversas</h3>
-          <Button 
-            size="sm" 
-            onClick={createConversation}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            + Nova
-          </Button>
-        </div>
-        
-        <ScrollArea className="h-[200px] lg:h-[500px]">
-          {conversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              onClick={() => {
-                selectConversation(conversation.id)
-                setShowSidebar(false) // Fechar sidebar no mobile após seleção
-              }}
-              className={`p-2 lg:p-3 rounded-lg cursor-pointer mb-2 transition-colors ${
-                currentConversationId === conversation.id
-                  ? 'bg-blue-100 border-blue-300'
-                  : 'bg-gray-50 lg:bg-gray-50 hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Bot size={14} className="text-blue-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs lg:text-sm font-medium truncate">
-                    Conversa {new Date(conversation.created_at).toLocaleDateString('pt-BR')}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatTime(conversation.created_at)}
-                  </p>
-                </div>
+    <div className="flex flex-col h-full max-h-[calc(100vh-12rem)] sm:max-h-[600px]">
+      <Card className="flex-1 flex flex-col">
+        <CardHeader className="flex-shrink-0 border-b p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-base sm:text-lg">Assistente de Recuperação</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Seu companheiro na jornada de sobriedade
+                </p>
               </div>
             </div>
-          ))}
-        </ScrollArea>
-      </div>
-
-      {/* Área principal do chat */}
-      <div className={`${showSidebar ? 'hidden' : 'flex'} lg:flex flex-1 flex-col`}>
-        {/* Header - otimizado para mobile */}
-        <CardHeader className="border-b border-gray-200 p-3 lg:p-6">
-          <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
-            <Bot className="w-5 h-5 lg:w-6 lg:h-6 text-blue-500" />
-            <span>Assistente de Recuperação AI</span>
-          </CardTitle>
-        </CardHeader>
-
-        {/* Mensagens - altura ajustada para mobile */}
-        <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-[300px] lg:h-[400px] p-3 lg:p-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                <Bot className="w-10 h-10 lg:w-12 lg:h-12 text-blue-500 mb-3 lg:mb-4" />
-                <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-2">
-                  Olá! Como posso ajudar hoje?
-                </h3>
-                <p className="text-sm lg:text-base text-gray-600 mb-4 lg:mb-6">
-                  Estou aqui para apoiar sua jornada de recuperação. Pode compartilhar como está se sentindo?
-                </p>
-                
-                {/* Botões de ação rápida - responsivos */}
-                <div className="flex flex-col sm:flex-row flex-wrap gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setInputMessage("Como posso lidar com vontade de usar?")}
-                    className="text-xs lg:text-sm"
-                  >
-                    💪 Lidar com tentações
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setInputMessage("Estou me sentindo ansioso")}
-                    className="text-xs lg:text-sm"
-                  >
-                    😰 Ansiedade
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setInputMessage("Preciso de motivação")}
-                    className="text-xs lg:text-sm"
-                  >
-                    ⭐ Motivação
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex mb-3 lg:mb-4 ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[85%] lg:max-w-[70%] rounded-lg p-2 lg:p-3 ${
-                        message.role === 'user'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      <div className="flex items-start space-x-1 lg:space-x-2">
-                        {message.role === 'assistant' && (
-                          <Bot size={14} className="text-blue-500 mt-1 flex-shrink-0" />
-                        )}
-                        {message.role === 'user' && (
-                          <User size={14} className="text-white mt-1 flex-shrink-0" />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-xs lg:text-sm leading-relaxed">{message.content}</p>
-                          <div className="flex items-center justify-between mt-1 lg:mt-2">
-                            <span className={`text-xs ${
-                              message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                            }`}>
-                              {formatTime(message.created_at)}
-                            </span>
-                            {message.crisis_level && (
-                              <Badge 
-                                variant={getCrisisBadgeColor(message.crisis_level) as any}
-                                className="ml-1 lg:ml-2 text-xs"
-                              >
-                                <AlertTriangle size={10} className="mr-1" />
-                                Crise Nível {message.crisis_level}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {isTyping && (
-                  <div className="flex justify-start mb-3 lg:mb-4">
-                    <div className="bg-gray-100 rounded-lg p-2 lg:p-3 max-w-[85%] lg:max-w-[70%]">
-                      <div className="flex items-center space-x-1 lg:space-x-2">
-                        <Bot size={14} className="text-blue-500" />
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </>
-            )}
-          </ScrollArea>
-
-          {/* Área de entrada - otimizada para mobile */}
-          <div className="border-t border-gray-200 p-3 lg:p-4">
-            {/* Botões de emergência - responsivos */}
-            <div className="flex flex-wrap gap-1 lg:gap-2 mb-2 lg:mb-3">
-              <EmergencyButton />
-              {contacts.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setInputMessage("Preciso de ajuda urgente")}
-                  className="text-red-600 border-red-200 hover:bg-red-50 text-xs lg:text-sm"
-                >
-                  <Heart size={12} className="mr-1" />
-                  Ajuda
-                </Button>
-              )}
+            
+            <div className="flex space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setInputMessage("Vamos fazer um exercício de respiração?")}
-                className="text-green-600 border-green-200 hover:bg-green-50 text-xs lg:text-sm"
+                onClick={handleNewConversation}
+                className="text-xs sm:text-sm"
               >
-                🧘 Respirar
+                <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                Nova Conversa
               </Button>
             </div>
+          </div>
+        </CardHeader>
 
+        <CardContent className="flex-1 flex flex-col p-0">
+          {/* Área de mensagens */}
+          <ScrollArea className="flex-1 p-3 sm:p-4">
+            <div className="space-y-3 sm:space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center py-8 sm:py-12">
+                  <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-indigo-300 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">
+                    Olá! Como posso ajudar você hoje?
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+                    Estou aqui para apoiar sua jornada de sobriedade. Você pode compartilhar 
+                    seus sentimentos, fazer perguntas ou apenas conversar.
+                  </p>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))
+              )}
+              
+              {loading && (
+                <div className="flex items-center space-x-2 text-gray-500 text-sm">
+                  <Bot className="w-4 h-4 animate-pulse" />
+                  <span>Digitando...</span>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input de mensagem */}
+          <div className="border-t p-3 sm:p-4 bg-gray-50">
             <div className="flex space-x-2">
               <Input
                 value={inputMessage}
@@ -285,20 +223,24 @@ export function ChatInterface() {
                 onKeyPress={handleKeyPress}
                 placeholder="Digite sua mensagem..."
                 disabled={loading}
-                className="flex-1 text-sm lg:text-base"
+                className="flex-1 min-h-[40px] sm:min-h-[44px] text-sm sm:text-base"
               />
-              <Button
+              <Button 
                 onClick={handleSendMessage}
-                disabled={loading || !inputMessage.trim()}
-                className="bg-blue-500 hover:bg-blue-600 px-3 lg:px-4"
+                disabled={!inputMessage.trim() || loading}
                 size="sm"
+                className="h-[40px] w-[40px] sm:h-[44px] sm:w-[44px] p-0"
               >
-                <Send size={14} />
+                <Send className="w-4 h-4" />
               </Button>
             </div>
+            
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Em caso de emergência, procure ajuda médica imediatamente ou ligue 192
+            </p>
           </div>
         </CardContent>
-      </div>
+      </Card>
     </div>
   )
 }

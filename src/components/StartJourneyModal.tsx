@@ -1,13 +1,11 @@
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useSobriety } from '@/hooks/useSobriety'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus } from 'lucide-react'
@@ -266,7 +264,6 @@ export function StartJourneyModal({ open, onOpenChange }: StartJourneyModalProps
           <Button
             onClick={handleStartJourney}
             disabled={!selectedAddictionId || loading}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
           >
             {loading ? 'Iniciando...' : 'Iniciar Jornada'}
           </Button>

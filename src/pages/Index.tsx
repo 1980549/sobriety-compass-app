@@ -1,6 +1,7 @@
 
+import React from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { MultiSobrietyDashboard } from "@/components/MultiSobrietyDashboard";
+import MultiSobrietyDashboard from "@/components/MultiSobrietyDashboard";
 import { ChatInterface } from "@/components/ChatInterface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Home, LogOut } from "lucide-react";
