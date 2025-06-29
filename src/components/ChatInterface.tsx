@@ -24,7 +24,7 @@ export function ChatInterface() {
   
   const [inputMessage, setInputMessage] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { emergencyContacts } = useEmergencyContacts()
+  const { contacts } = useEmergencyContacts()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -114,7 +114,7 @@ export function ChatInterface() {
         <CardHeader className="border-b border-gray-200">
           <CardTitle className="flex items-center space-x-2">
             <Bot className="w-6 h-6 text-blue-500" />
-            <span>Assistente de Recuperação</span>
+            <span>Assistente de Recuperação AI</span>
           </CardTitle>
         </CardHeader>
 
@@ -228,7 +228,7 @@ export function ChatInterface() {
             {/* Botões de emergência */}
             <div className="flex space-x-2 mb-3">
               <EmergencyButton />
-              {emergencyContacts.length > 0 && (
+              {contacts.length > 0 && (
                 <Button
                   variant="outline"
                   size="sm"

@@ -99,7 +99,7 @@ serve(async (req) => {
       .order('entry_date', { ascending: false })
       .limit(7)
 
-    // Construir contexto para OpenAI
+    // Construir contexto para Google Gemini
     let context = "Você é um assistente especializado em apoio à recuperação de vícios. "
     
     if (sobrietyRecords && sobrietyRecords.length > 0) {
@@ -112,28 +112,62 @@ serve(async (req) => {
       context += `Humor médio recente: ${avgMood.toFixed(1)}/5. `
     }
 
-    context += "Seja empático, motivador e ofereça conselhos práticos. Se detectar sinais de crise, direcione para recursos de ajuda."
+    context += "Seja empático, motivador e ofereça conselhos práticos. Se detectar sinais de crise, direcione para recursos de ajuda. Responda sempre em português brasileiro."
 
-    // Chamada para OpenAI
-    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Chamada para Google Gemini API
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY não configurada')
+    }
+
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          { role: 'system', content: context },
-          { role: 'user', content: message }
+        contents: [
+          {
+            parts: [
+              {
+                text: `${context}\n\nUsuário: ${message}`
+              }
+            ]
+          }
         ],
-        max_tokens: 500,
-        temperature: 0.7,
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
       }),
     })
 
-    const aiData = await openAiResponse.json()
-    const aiResponse = aiData.choices[0]?.message?.content || "Desculpe, não consegui processar sua mensagem no momento."
+    if (!geminiResponse.ok) {
+      throw new Error(`Erro na API do Gemini: ${geminiResponse.status}`)
+    }
+
+    const geminiData = await geminiResponse.json()
+    const aiResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui processar sua mensagem no momento."
 
     // Salvar mensagens no banco
     await supabaseClient
