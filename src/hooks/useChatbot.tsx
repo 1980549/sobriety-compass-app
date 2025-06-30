@@ -127,6 +127,17 @@ export function useChatbot() {
   }
 
   /**
+   * Limpa a conversa atual
+   */
+  const clearConversation = () => {
+    updateState({ messages: [] })
+    toast({
+      title: "Conversa limpa",
+      description: "O histórico da conversa foi removido",
+    })
+  }
+
+  /**
    * Envia uma mensagem para o chatbot
    */
   const sendMessage = async (content: string) => {
@@ -220,5 +231,6 @@ export function useChatbot() {
     createConversation,
     selectConversation,
     refreshConversations,
+    clearConversation,
   }
 }

@@ -13,9 +13,8 @@ export const ChatInterface = () => {
   const { user } = useAuth();
   const {
     messages,
-    isLoading,
+    loading,
     sendMessage,
-    clearConversation,
   } = useChatbot();
 
   const [input, setInput] = useState('');
@@ -31,15 +30,19 @@ export const ChatInterface = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || loading) return;
 
     const message = input.trim();
     setInput('');
     await sendMessage(message);
   };
 
+  const clearConversation = () => {
+    // Funcionalidade de limpar conversa será implementada no hook
+    console.log('Clear conversation - funcionalidade em desenvolvimento');
+  };
+
   const getEmotionColor = (message: ChatMessage) => {
-    // Removido o acesso a emotion_detected que não existe no tipo
     if (message.message_type === 'crisis') {
       return 'text-red-600';
     }
@@ -145,7 +148,7 @@ export const ChatInterface = () => {
                 </div>
               ))
             )}
-            {isLoading && (
+            {loading && (
               <div className="flex justify-start">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -172,10 +175,10 @@ export const ChatInterface = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Digite sua mensagem..."
-              disabled={isLoading}
+              disabled={loading}
               className="flex-1"
             />
-            <Button type="submit" disabled={isLoading || !input.trim()}>
+            <Button type="submit" disabled={loading || !input.trim()}>
               <Send className="w-4 h-4" />
             </Button>
           </form>
