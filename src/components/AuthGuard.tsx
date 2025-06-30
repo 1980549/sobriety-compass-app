@@ -1,14 +1,14 @@
 
 import { ReactNode } from 'react'
-import { useAuth } from '@/hooks/useAuth'
-import { AuthPages } from './AuthPages'
+import { useUnifiedAuth } from '@/hooks/useUnifiedAuth'
 
 interface AuthGuardProps {
   children: ReactNode
+  requireAuth?: boolean
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useAuth()
+export function AuthGuard({ children, requireAuth = false }: AuthGuardProps) {
+  const { loading, currentUser, isGuest } = useUnifiedAuth()
 
   if (loading) {
     return (
@@ -21,8 +21,21 @@ export function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  if (!user) {
-    return <AuthPages />
+  // Se não requer autenticação, sempre permitir acesso (guest ou autenticado)
+  if (!requireAuth) {
+    return <>{children}</>
+  }
+
+  // Se requer autenticação e não está logado, redirecionar
+  if (requireAuth && isGuest) {
+    // Implementar redirecionamento para login se necessário
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <p className="text-lg text-gray-600">Esta funcionalidade requer login.</p>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>

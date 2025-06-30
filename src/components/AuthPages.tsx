@@ -1,19 +1,36 @@
 
-import { useState } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { useState, useEffect } from 'react'
+import { useUnifiedAuth } from '@/hooks/useUnifiedAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useNavigate } from 'react-router-dom'
+import { GuestMigrationPrompt } from './GuestMigrationPrompt'
 
 export function AuthPages() {
-  const { signIn, signUp, loading } = useAuth()
+  const { signIn, signUp, loading, user } = useUnifiedAuth()
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     nome: '',
   })
+  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false)
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (user) {
+      // Verificar se há dados guest para migrar
+      const guestData = localStorage.getItem('guestData')
+      if (guestData) {
+        setShowMigrationPrompt(true)
+      } else {
+        navigate('/')
+      }
+    }
+  }, [user, navigate])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -27,6 +44,23 @@ export function AuthPages() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     await signUp(formData.email, formData.password, formData.nome)
+  }
+
+  const handleMigration = () => {
+    setShowMigrationPrompt(false)
+    navigate('/')
+  }
+
+  if (showMigrationPrompt) {
+    return (
+      <GuestMigrationPrompt
+        onClose={() => {
+          setShowMigrationPrompt(false)
+          navigate('/')
+        }}
+        onMigrate={handleMigration}
+      />
+    )
   }
 
   return (
@@ -129,6 +163,16 @@ export function AuthPages() {
               </form>
             </TabsContent>
           </Tabs>
+
+          <div className="mt-6 text-center">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="text-sm text-muted-foreground"
+            >
+              ← Voltar como visitante
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
