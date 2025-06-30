@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,16 @@ interface AuditResult {
   details?: string;
 }
 
+type AuditStatus = 'pass' | 'fail' | 'warning' | 'pending';
+
+/**
+ * Normaliza o status para garantir que apenas valores válidos sejam aceitos
+ */
+const normalizeStatus = (status: string): AuditStatus => {
+  const validStatuses: AuditStatus[] = ['pass', 'fail', 'warning', 'pending'];
+  return validStatuses.includes(status as AuditStatus) ? (status as AuditStatus) : 'pending';
+};
+
 export const SystemAudit = () => {
   const { user, loading: authLoading } = useAuth();
   const { records } = useSobriety();
@@ -31,11 +40,11 @@ export const SystemAudit = () => {
       name: 'Autenticação',
       test: async () => {
         try {
-          if (authLoading) return { status: 'pending', message: 'Verificando autenticação...' };
-          if (user) return { status: 'pass', message: 'Usuário autenticado com sucesso' };
-          return { status: 'warning', message: 'Usuário não autenticado' };
+          if (authLoading) return { status: 'pending' as AuditStatus, message: 'Verificando autenticação...' };
+          if (user) return { status: 'pass' as AuditStatus, message: 'Usuário autenticado com sucesso' };
+          return { status: 'warning' as AuditStatus, message: 'Usuário não autenticado' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro na autenticação', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro na autenticação', details: String(error) };
         }
       }
     },
@@ -48,11 +57,11 @@ export const SystemAudit = () => {
                                   document.querySelector('[class*="dashboard"]');
           
           if (dashboardElement) {
-            return { status: 'pass', message: 'Dashboard carregado corretamente' };
+            return { status: 'pass' as AuditStatus, message: 'Dashboard carregado corretamente' };
           }
-          return { status: 'warning', message: 'Dashboard não encontrado na DOM' };
+          return { status: 'warning' as AuditStatus, message: 'Dashboard não encontrado na DOM' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro ao verificar dashboard', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro ao verificar dashboard', details: String(error) };
         }
       }
     },
@@ -61,11 +70,11 @@ export const SystemAudit = () => {
       test: async () => {
         try {
           if (records && records.length > 0) {
-            return { status: 'pass', message: `${records.length} jornada(s) encontrada(s)` };
+            return { status: 'pass' as AuditStatus, message: `${records.length} jornada(s) encontrada(s)` };
           }
-          return { status: 'warning', message: 'Nenhuma jornada ativa encontrada' };
+          return { status: 'warning' as AuditStatus, message: 'Nenhuma jornada ativa encontrada' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro ao carregar jornadas', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro ao carregar jornadas', details: String(error) };
         }
       }
     },
@@ -78,11 +87,11 @@ export const SystemAudit = () => {
                              document.querySelector('input[placeholder*="mensagem"]');
           
           if (chatElement) {
-            return { status: 'pass', message: 'Interface de chat disponível' };
+            return { status: 'pass' as AuditStatus, message: 'Interface de chat disponível' };
           }
-          return { status: 'warning', message: 'Interface de chat não encontrada' };
+          return { status: 'warning' as AuditStatus, message: 'Interface de chat não encontrada' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro ao verificar chat', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro ao verificar chat', details: String(error) };
         }
       }
     },
@@ -91,17 +100,17 @@ export const SystemAudit = () => {
       test: async () => {
         try {
           if (!isSupported) {
-            return { status: 'warning', message: 'Notificações não suportadas pelo navegador' };
+            return { status: 'warning' as AuditStatus, message: 'Notificações não suportadas pelo navegador' };
           }
           if (permission === 'granted') {
-            return { status: 'pass', message: 'Notificações ativadas' };
+            return { status: 'pass' as AuditStatus, message: 'Notificações ativadas' };
           }
           if (permission === 'denied') {
-            return { status: 'warning', message: 'Notificações negadas pelo usuário' };
+            return { status: 'warning' as AuditStatus, message: 'Notificações negadas pelo usuário' };
           }
-          return { status: 'warning', message: 'Permissão de notificação pendente' };
+          return { status: 'warning' as AuditStatus, message: 'Permissão de notificação pendente' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro no sistema de notificações', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro no sistema de notificações', details: String(error) };
         }
       }
     },
@@ -113,14 +122,14 @@ export const SystemAudit = () => {
           const hasManifest = document.querySelector('link[rel="manifest"]');
           
           if (hasSW && hasManifest) {
-            return { status: 'pass', message: 'PWA configurado corretamente' };
+            return { status: 'pass' as AuditStatus, message: 'PWA configurado corretamente' };
           }
           if (!hasSW && !hasManifest) {
-            return { status: 'fail', message: 'Service Worker e Manifest não encontrados' };
+            return { status: 'fail' as AuditStatus, message: 'Service Worker e Manifest não encontrados' };
           }
-          return { status: 'warning', message: 'PWA parcialmente configurado' };
+          return { status: 'warning' as AuditStatus, message: 'PWA parcialmente configurado' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro ao verificar PWA', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro ao verificar PWA', details: String(error) };
         }
       }
     },
@@ -134,11 +143,11 @@ export const SystemAudit = () => {
                              document.querySelector('button[class*="toggle"]');
           
           if (hasThemeClass && themeToggle) {
-            return { status: 'pass', message: 'Sistema de tema funcionando' };
+            return { status: 'pass' as AuditStatus, message: 'Sistema de tema funcionando' };
           }
-          return { status: 'warning', message: 'Sistema de tema não completamente configurado' };
+          return { status: 'warning' as AuditStatus, message: 'Sistema de tema não completamente configurado' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro ao verificar tema', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro ao verificar tema', details: String(error) };
         }
       }
     },
@@ -147,14 +156,13 @@ export const SystemAudit = () => {
       test: async () => {
         try {
           const viewport = document.querySelector('meta[name="viewport"]');
-          const isMobileViewport = window.innerWidth <= 768;
           
           if (viewport) {
-            return { status: 'pass', message: 'Viewport configurado para mobile' };
+            return { status: 'pass' as AuditStatus, message: 'Viewport configurado para mobile' };
           }
-          return { status: 'warning', message: 'Meta viewport não encontrado' };
+          return { status: 'warning' as AuditStatus, message: 'Meta viewport não encontrado' };
         } catch (error) {
-          return { status: 'fail', message: 'Erro ao verificar responsividade', details: String(error) };
+          return { status: 'fail' as AuditStatus, message: 'Erro ao verificar responsividade', details: String(error) };
         }
       }
     }
@@ -171,14 +179,14 @@ export const SystemAudit = () => {
         const result = await test.test();
         results.push({
           feature: test.name,
-          status: result.status,
+          status: normalizeStatus(result.status),
           message: result.message,
           details: result.details
         });
       } catch (error) {
         results.push({
           feature: test.name,
-          status: 'fail',
+          status: 'fail' as AuditStatus,
           message: 'Erro durante o teste',
           details: String(error)
         });
