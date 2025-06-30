@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase, Achievement, UserAchievement, SobrietyRecord } from '@/lib/supabase'
 import { useAuth } from './useAuth'
 import { useToast } from '@/hooks/use-toast'
@@ -52,7 +52,7 @@ export function useAchievements() {
 
   // Verificar e conceder conquistas baseadas em dias
   const checkDaysAchievements = async (record: SobrietyRecord) => {
-    if (!user) return
+    if (!user || !achievements.length) return
 
     const daysAchievements = achievements.filter(a => a.requirement_type === 'days')
     
@@ -72,7 +72,7 @@ export function useAchievements() {
 
   // Verificar conquistas de economia
   const checkMoneyAchievements = async (totalSaved: number) => {
-    if (!user) return
+    if (!user || !achievements.length) return
 
     const moneyAchievements = achievements.filter(a => a.requirement_type === 'money_saved')
     
@@ -91,7 +91,7 @@ export function useAchievements() {
 
   // Verificar conquistas de diário
   const checkJournalAchievements = async (entriesCount: number) => {
-    if (!user) return
+    if (!user || !achievements.length) return
 
     const journalAchievements = achievements.filter(a => a.requirement_type === 'journal_entries')
     
@@ -129,14 +129,16 @@ export function useAchievements() {
 
       if (error) throw error
 
-      const newAchievement = data[0]
-      
-      toast({
-        title: "🏆 Nova Conquista!",
-        description: `Você desbloqueou: ${newAchievement.achievements?.name}`,
-      })
+      if (data && data.length > 0) {
+        const newAchievement = data[0]
+        
+        toast({
+          title: "🏆 Nova Conquista!",
+          description: `Você desbloqueou: ${newAchievement.achievements?.name}`,
+        })
 
-      await loadUserAchievements()
+        await loadUserAchievements()
+      }
     } catch (error: any) {
       console.error('Erro ao conceder conquista:', error)
     }

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Calendar, Trophy, DollarSign, Target, Heart } from 'lucide-react'
+import { Plus, Calendar, Trophy, DollarSign, Target, Heart, Award } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useSobriety } from '@/hooks/useSobriety'
@@ -9,6 +9,7 @@ import { StartJourneyModal } from './StartJourneyModal'
 import { JournalModal } from './JournalModal'
 import { AchievementsModal } from './AchievementsModal'
 import { MoodTracker } from './MoodTracker'
+import { SavingsTracker } from './SavingsTracker'
 
 const MultiSobrietyDashboard = () => {
   const { 
@@ -62,14 +63,25 @@ const MultiSobrietyDashboard = () => {
             Acompanhe seu progresso e conquiste suas metas
           </p>
         </div>
-        <Button 
-          onClick={() => setIsStartModalOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base"
-          size="sm"
-        >
-          <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-          Nova Jornada
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            onClick={() => setIsAchievementsModalOpen(true)}
+            variant="outline"
+            className="text-sm sm:text-base"
+            size="sm"
+          >
+            <Award className="w-4 h-4 mr-1 sm:mr-2" />
+            Conquistas
+          </Button>
+          <Button 
+            onClick={() => setIsStartModalOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+            Nova Jornada
+          </Button>
+        </div>
       </div>
 
       {/* Cards de jornadas - grid responsivo */}
@@ -90,7 +102,7 @@ const MultiSobrietyDashboard = () => {
               Comece sua jornada hoje
             </h3>
             <p className="text-sm sm:text-base text-gray-600 max-w-md">
-              Dê o primeiro passo rumo à sua recuperação. Cada dia é uma nova oportunidade.
+              Dé o primeiro passo rumo à sua recuperação. Cada dia é uma nova oportunidade.
             </p>
             <Button 
               onClick={() => setIsStartModalOpen(true)}
@@ -153,6 +165,13 @@ const MultiSobrietyDashboard = () => {
               <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Seção de Economia e Sugestões - Nova seção restaurada */}
+      {records.length > 0 && parseFloat(getTotalSavings()) > 0 && (
+        <div className="mt-6 sm:mt-8">
+          <SavingsTracker />
         </div>
       )}
 

@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react'
 import { SobrietyRecord } from '@/lib/supabase'
 import { useSobriety } from '@/hooks/useSobriety'
+import { useAchievements } from '@/hooks/useAchievements'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { Calendar, DollarSign, Target, X } from 'lucide-react'
+import { Calendar, DollarSign, Target, X, Award } from 'lucide-react'
 
 interface SobrietyCardProps {
   record: SobrietyRecord
@@ -15,6 +16,7 @@ interface SobrietyCardProps {
 
 export function SobrietyCard({ record }: SobrietyCardProps) {
   const { endJourney } = useSobriety()
+  const { checkDaysAchievements } = useAchievements()
   const [currentDays, setCurrentDays] = useState(record.current_streak_days || 0)
 
   // Atualizar dias em tempo real
@@ -24,7 +26,13 @@ export function SobrietyCard({ record }: SobrietyCardProps) {
       const now = new Date()
       const diffTime = now.getTime() - startDate.getTime()
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-      setCurrentDays(diffDays >= 0 ? diffDays : 0)
+      const newDays = diffDays >= 0 ? diffDays : 0
+      setCurrentDays(newDays)
+      
+      // Verificar conquistas automaticamente
+      if (newDays !== currentDays && newDays > 0) {
+        checkDaysAchievements({ ...record, current_streak_days: newDays })
+      }
     }
 
     updateDays()
@@ -39,7 +47,7 @@ export function SobrietyCard({ record }: SobrietyCardProps) {
       clearInterval(interval)
       window.removeEventListener('sobriety-update', handleUpdate)
     }
-  }, [record.start_date])
+  }, [record.start_date, record, checkDaysAchievements, currentDays])
 
   // Calcular diferentes unidades de tempo
   const getTimeBreakdown = () => {
