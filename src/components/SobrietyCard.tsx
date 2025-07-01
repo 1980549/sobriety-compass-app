@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar, Trophy, DollarSign, RotateCcw, Trash2, StopCircle } from 'lucide-react'
 import { SobrietyRecord } from '@/hooks/useSobriety'
 import { useSobriety } from '@/hooks/useSobriety'
+import { useAchievements } from '@/hooks/useAchievements'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -16,6 +17,7 @@ interface SobrietyCardProps {
 
 export const SobrietyCard = ({ record }: SobrietyCardProps) => {
   const { updateStreak, resetStreak, endJourney, deleteJourney } = useSobriety()
+  const { removeAchievementsForRecord } = useAchievements()
 
   const daysClean = record.current_streak_days || 0
   const moneySaved = (record.daily_cost || 0) * daysClean
@@ -34,7 +36,8 @@ export const SobrietyCard = ({ record }: SobrietyCardProps) => {
     endJourney(record.id)
   }
 
-  const handleDeleteJourney = () => {
+  const handleDeleteJourney = async () => {
+    await removeAchievementsForRecord(record.id)
     deleteJourney(record.id)
   }
 
@@ -176,6 +179,7 @@ export const SobrietyCard = ({ record }: SobrietyCardProps) => {
                     Finalizar
                   </AlertDialogAction>
                 </AlertDialogFooter>
+              </AlertDialogContent>
             </AlertDialog>
           </div>
         )}
