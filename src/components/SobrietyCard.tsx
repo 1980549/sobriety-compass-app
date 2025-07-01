@@ -1,224 +1,212 @@
 
-import React, { useState, useEffect } from 'react'
-import { SobrietyRecord } from '@/lib/supabase'
-import { useSobriety } from '@/hooks/useSobriety'
-import { useAchievements } from '@/hooks/useAchievements'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import React from 'react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { Calendar, DollarSign, Target, X, Award } from 'lucide-react'
+import { Calendar, Trophy, DollarSign, RotateCcw, Trash2, StopCircle } from 'lucide-react'
+import { SobrietyRecord } from '@/hooks/useSobriety'
+import { useSobriety } from '@/hooks/useSobriety'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface SobrietyCardProps {
   record: SobrietyRecord
 }
 
-export function SobrietyCard({ record }: SobrietyCardProps) {
-  const { endJourney } = useSobriety()
-  const { checkDaysAchievements } = useAchievements()
-  const [currentDays, setCurrentDays] = useState(record.current_streak_days || 0)
+export const SobrietyCard = ({ record }: SobrietyCardProps) => {
+  const { updateStreak, resetStreak, endJourney, deleteJourney } = useSobriety()
 
-  // Atualizar dias em tempo real
-  useEffect(() => {
-    const updateDays = () => {
-      const startDate = new Date(record.start_date)
-      const now = new Date()
-      const diffTime = now.getTime() - startDate.getTime()
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-      const newDays = diffDays >= 0 ? diffDays : 0
-      setCurrentDays(newDays)
-      
-      // Verificar conquistas automaticamente
-      if (newDays !== currentDays && newDays > 0) {
-        checkDaysAchievements({ ...record, current_streak_days: newDays })
-      }
-    }
+  const daysClean = record.current_streak_days || 0
+  const moneySaved = (record.daily_cost || 0) * daysClean
+  const startDate = new Date(record.start_date)
+  const timeAgo = formatDistanceToNow(startDate, { addSuffix: true, locale: ptBR })
 
-    updateDays()
-    
-    const interval = setInterval(updateDays, 60000) // Atualizar a cada minuto
-    
-    // Escutar eventos de atualização
-    const handleUpdate = () => updateDays()
-    window.addEventListener('sobriety-update', handleUpdate)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('sobriety-update', handleUpdate)
-    }
-  }, [record.start_date, record, checkDaysAchievements, currentDays])
-
-  // Calcular diferentes unidades de tempo
-  const getTimeBreakdown = () => {
-    const weeks = Math.floor(currentDays / 7)
-    const months = Math.floor(currentDays / 30)
-    const years = Math.floor(currentDays / 365)
-    
-    return { weeks, months, years }
+  const handleIncrementDay = () => {
+    updateStreak(record.id, daysClean + 1)
   }
 
-  // Calcular próximo marco
-  const getNextMilestone = () => {
-    const milestones = [7, 30, 90, 180, 365, 730, 1095]
-    const nextMilestone = milestones.find(m => m > currentDays)
-    
-    if (nextMilestone) {
-      const remaining = nextMilestone - currentDays
-      const progress = (currentDays / nextMilestone) * 100
-      return { target: nextMilestone, remaining, progress }
-    }
-    
-    return null
+  const handleResetStreak = () => {
+    resetStreak(record.id)
   }
 
-  // Calcular economia
-  const calculateSavings = () => {
-    if (!record.daily_cost) return 0
-    return record.daily_cost * currentDays
+  const handleEndJourney = () => {
+    endJourney(record.id)
   }
 
-  // Obter mensagem motivacional
-  const getMotivationalMessage = () => {
-    if (currentDays === 0) return "Sua jornada começa agora! 💪"
-    if (currentDays === 1) return "Primeiro dia completo! Continue assim! 🌟"
-    if (currentDays === 7) return "Uma semana inteira! Incrível! 🎉"
-    if (currentDays === 30) return "Um mês completo! Você é forte! 🏆"
-    if (currentDays === 90) return "3 meses! Você está transformando sua vida! ✨"
-    if (currentDays === 365) return "1 ANO COMPLETO! Você é inspiração! 🎊"
-    
-    if (currentDays < 7) return `${currentDays} dias de força e determinação! 💪`
-    if (currentDays < 30) return `${currentDays} dias de nova vida! Continue! 🌱`
-    if (currentDays < 90) return `${currentDays} dias de progresso incrível! 🚀`
-    
-    return `${currentDays} dias de vitória! Você é incrível! 🌟`
+  const handleDeleteJourney = () => {
+    deleteJourney(record.id)
   }
 
-  const timeBreakdown = getTimeBreakdown()
-  const nextMilestone = getNextMilestone()
-  const savings = calculateSavings()
-  const addictionType = record.addiction_types
+  const getAddictionIcon = () => {
+    return record.addiction_types?.icon || '🚫'
+  }
+
+  const getAddictionColor = () => {
+    return record.addiction_types?.color || '#6366f1'
+  }
 
   return (
-    <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-      {/* Header com cor do tipo de vício */}
+    <Card className="relative overflow-hidden">
       <div 
-        className="h-1 w-full"
-        style={{ backgroundColor: addictionType?.color || '#6366f1' }}
+        className="absolute top-0 left-0 w-1 h-full"
+        style={{ backgroundColor: getAddictionColor() }}
       />
       
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg"
-              style={{ backgroundColor: addictionType?.color + '20' || '#6366f120' }}
-            >
-              {addictionType?.icon || '🚫'}
-            </div>
+            <span className="text-2xl">{getAddictionIcon()}</span>
             <div>
-              <CardTitle className="text-lg">{addictionType?.name || 'Vício'}</CardTitle>
-              <p className="text-sm text-gray-500">
-                Iniciado em {new Date(record.start_date).toLocaleDateString('pt-BR')}
+              <h3 className="font-semibold text-lg">
+                {record.addiction_types?.name || record.addiction_type}
+              </h3>
+              <p className="text-sm text-gray-600">
+                Iniciado {timeAgo}
               </p>
             </div>
           </div>
           
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Finalizar jornada?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja finalizar esta jornada de sobriedade? Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => endJourney(record.id)}>
-                  Finalizar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {record.is_active ? (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              Ativa
+            </Badge>
+          ) : (
+            <Badge variant="outline">
+              Finalizada
+            </Badge>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Contador principal */}
-        <div className="text-center p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg">
-          <div className="text-4xl font-bold text-indigo-600 mb-2">
-            {currentDays}
-          </div>
-          <div className="text-sm font-medium text-gray-600 mb-2">
-            {currentDays === 1 ? 'dia' : 'dias'} limpo{currentDays !== 1 ? 's' : ''}
-          </div>
-          
-          {/* Breakdown de tempo */}
-          {currentDays > 0 && (
-            <div className="flex justify-center space-x-4 text-xs text-gray-500">
-              {timeBreakdown.weeks > 0 && (
-                <span>{timeBreakdown.weeks} sem{timeBreakdown.weeks !== 1 ? '.' : ''}</span>
-              )}
-              {timeBreakdown.months > 0 && (
-                <span>{timeBreakdown.months} mês{timeBreakdown.months !== 1 ? 'es' : ''}</span>
-              )}
-              {timeBreakdown.years > 0 && (
-                <span>{timeBreakdown.years} ano{timeBreakdown.years !== 1 ? 's' : ''}</span>
-              )}
+        {/* Estatísticas principais */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
+            <Calendar className="w-5 h-5 text-blue-600" />
+            <div>
+              <p className="text-sm text-gray-600">Dias limpo</p>
+              <p className="text-xl font-bold text-blue-600">{daysClean}</p>
             </div>
-          )}
+          </div>
+
+          <div className="flex items-center space-x-2 p-3 bg-green-50 rounded-lg">
+            <Trophy className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="text-sm text-gray-600">Melhor sequência</p>
+              <p className="text-xl font-bold text-green-600">
+                {record.best_streak_days || 0}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Próximo marco */}
-        {nextMilestone && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Próximo marco</span>
-              <Badge variant="secondary" className="text-xs">
-                {nextMilestone.target} dias
-              </Badge>
-            </div>
-            <Progress value={nextMilestone.progress} className="h-2" />
-            <p className="text-xs text-gray-500 text-center">
-              Faltam {nextMilestone.remaining} dias
-            </p>
-          </div>
-        )}
-
         {/* Economia */}
-        {record.daily_cost && (
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700">Economizado</span>
-            </div>
-            <span className="text-lg font-bold text-green-600">
-              R$ {savings.toFixed(2)}
-            </span>
-          </div>
-        )}
-
-        {/* Meta pessoal */}
-        {record.personal_goal && (
-          <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
-            <Target className="w-4 h-4 text-blue-600 mt-0.5" />
+        {record.daily_cost && record.daily_cost > 0 && (
+          <div className="flex items-center space-x-2 p-3 bg-emerald-50 rounded-lg">
+            <DollarSign className="w-5 h-5 text-emerald-600" />
             <div>
-              <p className="text-sm font-medium text-blue-700">Meta</p>
-              <p className="text-xs text-blue-600">{record.personal_goal}</p>
+              <p className="text-sm text-gray-600">Dinheiro economizado</p>
+              <p className="text-xl font-bold text-emerald-600">
+                R$ {moneySaved.toFixed(2)}
+              </p>
             </div>
           </div>
         )}
 
-        {/* Mensagem motivacional */}
-        <div className="text-center p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
-          <p className="text-sm font-medium text-indigo-700">
-            {getMotivationalMessage()}
-          </p>
+        {/* Estatísticas adicionais */}
+        {record.total_relapses !== undefined && record.total_relapses > 0 && (
+          <div className="text-sm text-gray-600">
+            Recaídas: {record.total_relapses}
+          </div>
+        )}
+
+        {/* Ações da jornada */}
+        {record.is_active && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button
+              onClick={handleIncrementDay}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Calendar className="w-4 h-4 mr-1" />
+              +1 Dia
+            </Button>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Recaída
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar Recaída</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso irá resetar sua sequência atual para 0 dias. Não desanime, cada recomeço é uma nova oportunidade!
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetStreak}>
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <StopCircle className="w-4 h-4 mr-1" />
+                  Finalizar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Finalizar Jornada</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso irá marcar sua jornada como finalizada. Você poderá iniciar uma nova jornada depois se desejar.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleEndJourney}>
+                    Finalizar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialog>
+          </div>
+        )}
+
+        {/* Ação de exclusão */}
+        <div className="pt-2 border-t">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive" className="w-full">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir Jornada
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir Jornada</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir esta jornada? Todos os dados e progresso serão perdidos permanentemente. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteJourney}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

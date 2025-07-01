@@ -19,6 +19,8 @@ export interface SobrietyRecord {
   current_streak_days?: number
   best_streak_days?: number
   daily_cost?: number
+  user_email?: string
+  total_relapses?: number
   addiction_types?: {
     id: string
     name: string
@@ -97,6 +99,8 @@ export function useSobriety() {
         ...record,
         current_streak_days: record.current_streak_days || 0,
         best_streak_days: record.best_streak_days || 0,
+        total_relapses: record.total_relapses || 0,
+        user_email: record.user_email || '',
         addiction_type: record.addiction_types?.name || 'Vício'
       }))
       
@@ -113,68 +117,25 @@ export function useSobriety() {
     }
   }
 
-  const startSobrietyJourney = async (addictionType: string) => {
-    if (isGuest) {
-      const newRecord: SobrietyRecord = {
-        id: `guest_${Date.now()}`,
-        user_id: 'guest',
-        addiction_type: addictionType,
-        start_date: new Date().toISOString(),
-        current_streak: 0,
-        longest_streak: 0,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        current_streak_days: 0,
-        best_streak_days: 0
-      }
-      
-      addToGuestData('sobrietyRecords', newRecord)
-      setSobrietyRecords(prev => [newRecord, ...prev])
-      
+  // Verificar se já existe jornada para o tipo de vício
+  const checkExistingJourney = (addictionTypeId: string): boolean => {
+    return sobrietyRecords.some(record => 
+      record.addiction_type_id === addictionTypeId && record.is_active
+    )
+  }
+
+  const startJourney = async (addictionTypeId: string, startDate: string, dailyCost?: number, personalGoal?: string, motivationReason?: string) => {
+    // Verificar duplicidade
+    if (checkExistingJourney(addictionTypeId)) {
+      const addictionType = addictionTypes.find(at => at.id === addictionTypeId)
       toast({
-        title: "Jornada iniciada!",
-        description: `Sua jornada contra ${addictionType} começou. Você consegue!`,
+        title: "Jornada já existe",
+        description: `Você já possui uma jornada ativa para ${addictionType?.name || 'este vício'}.`,
+        variant: "destructive",
       })
       return
     }
 
-    if (!currentUser) return
-
-    try {
-      const { data, error } = await supabase
-        .from('sobriety_records')
-        .insert([
-          {
-            user_id: currentUser.id,
-            addiction_type: addictionType,
-            start_date: new Date().toISOString().split('T')[0],
-            current_streak_days: 0,
-            best_streak_days: 0,
-            is_active: true
-          }
-        ])
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setSobrietyRecords(prev => [data, ...prev])
-      toast({
-        title: "Jornada iniciada!",
-        description: `Sua jornada contra ${addictionType} começou. Você consegue!`,
-      })
-    } catch (error: any) {
-      console.error('Erro ao iniciar jornada:', error)
-      toast({
-        title: "Erro",
-        description: "Não foi possível iniciar a jornada.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const startJourney = async (addictionTypeId: string, startDate: string, dailyCost?: number, personalGoal?: string, motivationReason?: string) => {
     if (isGuest) {
       const addictionType = addictionTypes.find(at => at.id === addictionTypeId)
       const newRecord: SobrietyRecord = {
@@ -190,6 +151,8 @@ export function useSobriety() {
         current_streak_days: 0,
         best_streak_days: 0,
         daily_cost: dailyCost,
+        user_email: '',
+        total_relapses: 0,
         addiction_types: addictionType
       }
       
@@ -218,7 +181,8 @@ export function useSobriety() {
             daily_cost: dailyCost,
             personal_goal: personalGoal,
             motivation_reason: motivationReason,
-            is_active: true
+            is_active: true,
+            total_relapses: 0
           }
         ])
         .select(`
@@ -244,6 +208,45 @@ export function useSobriety() {
       toast({
         title: "Erro",
         description: "Não foi possível iniciar a jornada.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const deleteJourney = async (recordId: string) => {
+    if (isGuest) {
+      const updatedRecords = sobrietyRecords.filter(record => record.id !== recordId)
+      setSobrietyRecords(updatedRecords)
+      updateGuestData('sobrietyRecords', updatedRecords)
+      
+      toast({
+        title: "Jornada excluída",
+        description: "A jornada foi removida com sucesso.",
+      })
+      return
+    }
+
+    if (!currentUser) return
+
+    try {
+      const { error } = await supabase
+        .from('sobriety_records')
+        .delete()
+        .eq('id', recordId)
+
+      if (error) throw error
+
+      setSobrietyRecords(prev => prev.filter(r => r.id !== recordId))
+      
+      toast({
+        title: "Jornada excluída",
+        description: "A jornada foi removida com sucesso.",
+      })
+    } catch (error: any) {
+      console.error('Erro ao excluir jornada:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a jornada.",
         variant: "destructive",
       })
     }
@@ -358,22 +361,30 @@ export function useSobriety() {
               ...record, 
               current_streak: 0,
               current_streak_days: 0,
+              total_relapses: (record.total_relapses || 0) + 1,
               updated_at: new Date().toISOString()
             }
           : record
       )
       setSobrietyRecords(updatedRecords)
       updateGuestData('sobrietyRecords', updatedRecords)
+      
+      toast({
+        title: "Streak resetado",
+        description: "Não desista! Cada recomeço é uma nova oportunidade.",
+      })
       return
     }
 
     if (!currentUser) return
 
     try {
+      const record = sobrietyRecords.find(r => r.id === recordId)
       const { error } = await supabase
         .from('sobriety_records')
         .update({
           current_streak_days: 0,
+          total_relapses: (record?.total_relapses || 0) + 1,
           updated_at: new Date().toISOString()
         })
         .eq('id', recordId)
@@ -383,7 +394,12 @@ export function useSobriety() {
       setSobrietyRecords(prev => 
         prev.map(r => 
           r.id === recordId 
-            ? { ...r, current_streak_days: 0, updated_at: new Date().toISOString() }
+            ? { 
+                ...r, 
+                current_streak_days: 0, 
+                total_relapses: (r.total_relapses || 0) + 1,
+                updated_at: new Date().toISOString() 
+              }
             : r
         )
       )
@@ -454,17 +470,23 @@ export function useSobriety() {
   }
 
   return {
-    // Manter compatibilidade com a interface antiga
-    records: sobrietyRecords,
+    // Interface principal
     sobrietyRecords,
     addictionTypes,
     loading,
-    startSobrietyJourney,
+    
+    // Funções principais
     startJourney,
+    deleteJourney,
     createCustomAddiction,
     updateStreak,
     resetStreak,
     endJourney,
+    checkExistingJourney,
+    
+    // Compatibilidade com interface antiga
+    records: sobrietyRecords,
+    startSobrietyJourney: startJourney,
     refetch: fetchSobrietyRecords,
     refreshRecords: fetchSobrietyRecords
   }

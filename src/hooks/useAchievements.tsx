@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase, Achievement, UserAchievement, SobrietyRecord } from '@/lib/supabase'
-import { useAuth } from './useAuth'
+import { useUnifiedAuth } from './useUnifiedAuth'
 import { useToast } from '@/hooks/use-toast'
 
 export function useAchievements() {
-  const { user } = useAuth()
+  const { currentUser, isGuest } = useUnifiedAuth()
   const { toast } = useToast()
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([])
@@ -28,7 +28,10 @@ export function useAchievements() {
 
   // Carregar conquistas do usuário
   const loadUserAchievements = async () => {
-    if (!user) return
+    if (!currentUser || isGuest) {
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
@@ -38,7 +41,7 @@ export function useAchievements() {
           *,
           achievements (*)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .order('earned_at', { ascending: false })
 
       if (error) throw error
@@ -50,15 +53,15 @@ export function useAchievements() {
     }
   }
 
-  // Verificar e conceder conquistas baseadas em dias
+  // Verificar e conceder conquistas baseadas em dias para jornada específica
   const checkDaysAchievements = async (record: SobrietyRecord) => {
-    if (!user || !achievements.length) return
+    if (!currentUser || !achievements.length || isGuest) return
 
     const daysAchievements = achievements.filter(a => a.requirement_type === 'days')
     
     for (const achievement of daysAchievements) {
-      if (record.current_streak_days >= achievement.requirement_value) {
-        // Verificar se já possui esta conquista para este record
+      if ((record.current_streak_days || 0) >= achievement.requirement_value) {
+        // Verificar se já possui esta conquista para este record específico
         const hasAchievement = userAchievements.some(
           ua => ua.achievement_id === achievement.id && ua.sobriety_record_id === record.id
         )
@@ -70,35 +73,36 @@ export function useAchievements() {
     }
   }
 
-  // Verificar conquistas de economia
-  const checkMoneyAchievements = async (totalSaved: number) => {
-    if (!user || !achievements.length) return
+  // Verificar conquistas de economia (específica por jornada)
+  const checkMoneyAchievements = async (record: SobrietyRecord) => {
+    if (!currentUser || !achievements.length || isGuest) return
 
+    const totalSaved = (record.daily_cost || 0) * (record.current_streak_days || 0)
     const moneyAchievements = achievements.filter(a => a.requirement_type === 'money_saved')
     
     for (const achievement of moneyAchievements) {
       if (totalSaved >= achievement.requirement_value) {
         const hasAchievement = userAchievements.some(
-          ua => ua.achievement_id === achievement.id
+          ua => ua.achievement_id === achievement.id && ua.sobriety_record_id === record.id
         )
 
         if (!hasAchievement) {
-          await grantAchievement(achievement.id)
+          await grantAchievement(achievement.id, record.id)
         }
       }
     }
   }
 
-  // Verificar conquistas de diário
+  // Verificar conquistas de diário (geral, não específica por jornada)
   const checkJournalAchievements = async (entriesCount: number) => {
-    if (!user || !achievements.length) return
+    if (!currentUser || !achievements.length || isGuest) return
 
     const journalAchievements = achievements.filter(a => a.requirement_type === 'journal_entries')
     
     for (const achievement of journalAchievements) {
       if (entriesCount >= achievement.requirement_value) {
         const hasAchievement = userAchievements.some(
-          ua => ua.achievement_id === achievement.id
+          ua => ua.achievement_id === achievement.id && !ua.sobriety_record_id
         )
 
         if (!hasAchievement) {
@@ -110,14 +114,14 @@ export function useAchievements() {
 
   // Conceder conquista
   const grantAchievement = async (achievementId: string, sobrietyRecordId?: string) => {
-    if (!user) return
+    if (!currentUser || isGuest) return
 
     try {
       const { data, error } = await supabase
         .from('user_achievements')
         .insert([
           {
-            user_id: user.id,
+            user_id: currentUser.id,
             achievement_id: achievementId,
             sobriety_record_id: sobrietyRecordId,
           },
@@ -144,15 +148,40 @@ export function useAchievements() {
     }
   }
 
+  // Recalcular conquistas para uma jornada específica
+  const recalculateAchievementsForRecord = async (record: SobrietyRecord) => {
+    await checkDaysAchievements(record)
+    await checkMoneyAchievements(record)
+  }
+
+  // Remover conquistas de uma jornada excluída
+  const removeAchievementsForRecord = async (recordId: string) => {
+    if (!currentUser || isGuest) return
+
+    try {
+      const { error } = await supabase
+        .from('user_achievements')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('sobriety_record_id', recordId)
+
+      if (error) throw error
+
+      await loadUserAchievements()
+    } catch (error) {
+      console.error('Erro ao remover conquistas da jornada:', error)
+    }
+  }
+
   useEffect(() => {
     loadAchievements()
   }, [])
 
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
       loadUserAchievements()
     }
-  }, [user])
+  }, [currentUser])
 
   return {
     achievements,
@@ -162,6 +191,8 @@ export function useAchievements() {
     checkMoneyAchievements,
     checkJournalAchievements,
     grantAchievement,
+    recalculateAchievementsForRecord,
+    removeAchievementsForRecord,
     refreshAchievements: loadUserAchievements,
   }
 }
