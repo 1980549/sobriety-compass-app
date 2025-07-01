@@ -26,11 +26,6 @@ export const getDisplayName = (user: AppUser | null): string => {
     return supabaseUser.user_metadata.display_name
   }
   
-  // Tentar pegar do raw_user_meta_data
-  if (supabaseUser.raw_user_meta_data?.display_name) {
-    return supabaseUser.raw_user_meta_data.display_name
-  }
-  
   // Fallback para email (parte antes do @)
   if (supabaseUser.email) {
     return supabaseUser.email.split('@')[0]
