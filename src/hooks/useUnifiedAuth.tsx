@@ -4,12 +4,13 @@ import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useGuestAuth } from './useGuestAuth'
+import { AppUser } from '@/types/user'
 
 interface UnifiedAuthContextType {
   session: Session | null
   user: User | null
   isGuest: boolean
-  currentUser: User | { id: string; email: string; display_name: string } | null
+  currentUser: AppUser | null
   loading: boolean
   signUp: (email: string, password: string, nome?: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
@@ -26,7 +27,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   const { guestUser, migrateGuestData, clearGuestUser } = useGuestAuth()
 
   const isGuest = !user && !!guestUser
-  const currentUser = user || guestUser
+  const currentUser: AppUser | null = user || guestUser
 
   useEffect(() => {
     console.log('Inicializando Unified Auth Provider...')

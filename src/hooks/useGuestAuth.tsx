@@ -1,13 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@supabase/supabase-js'
-
-interface GuestUser {
-  id: string
-  email: string
-  isGuest: true
-  display_name: string
-}
+import { GuestUser } from '@/types/user'
 
 interface GuestAuthContextType {
   guestUser: GuestUser | null

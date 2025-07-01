@@ -8,6 +8,7 @@ import { ExportData } from "@/components/ExportData";
 import { UserProfile } from "@/components/UserProfile";
 import { DataPrivacy } from "@/components/DataPrivacy";
 import { useLocation } from "react-router-dom";
+import { getDisplayName } from "@/types/user";
 
 const Index = () => {
   const { currentUser, isGuest } = useUnifiedAuth();
@@ -47,7 +48,7 @@ const Index = () => {
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
               {isGuest 
                 ? 'Experimente todas as funcionalidades. Faça login para sincronizar seus dados!'
-                : `Olá, ${currentUser?.display_name || currentUser?.email?.split('@')[0] || 'Usuário'}`
+                : `Olá, ${getDisplayName(currentUser)}`
               }
             </p>
           </div>

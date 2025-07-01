@@ -34,6 +34,7 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useAppNavigation, AppRoute } from "@/hooks/useAppNavigation"
+import { getDisplayName, getUserInitials } from "@/types/user"
 
 const menuItems: { title: string; route: AppRoute; icon: any }[] = [
   { title: "Dashboard", route: "dashboard", icon: Home },
@@ -45,20 +46,18 @@ const menuItems: { title: string; route: AppRoute; icon: any }[] = [
 ]
 
 export function AppSidebar() {
-  const { collapsed } = useSidebar()
+  const { state } = useSidebar()
+  const collapsed = state === "collapsed"
   const { currentUser, isGuest, signOut, loading } = useUnifiedAuth()
   const { theme, toggleTheme } = useTheme()
   const { currentTab, navigateTo } = useAppNavigation()
-  const [showAuthModal, setShowAuthModal] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
   }
 
-  const getInitials = (name: string) => {
-    if (!name) return "?"
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  }
+  const displayName = getDisplayName(currentUser)
+  const userInitials = getUserInitials(currentUser)
 
   return (
     <Sidebar className="border-r border-border">
@@ -118,13 +117,13 @@ export function AppSidebar() {
           <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs">
-                {getInitials(currentUser?.display_name || currentUser?.email || 'U')}
+                {userInitials}
               </AvatarFallback>
             </Avatar>
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
-                  {isGuest ? 'Visitante' : (currentUser?.display_name || currentUser?.email?.split('@')[0])}
+                  {isGuest ? 'Visitante' : displayName}
                 </p>
                 {isGuest && (
                   <Badge variant="secondary" className="text-xs">
