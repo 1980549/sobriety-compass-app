@@ -6,10 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider } from "@/hooks/useAuth";
 import { GuestAuthProvider } from "@/hooks/useGuestAuth";
 import { UnifiedAuthProvider } from "@/hooks/useUnifiedAuth";
 import { AppLayout } from "@/components/AppLayout";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { DevTools } from "./components/DevTools";
@@ -30,37 +32,41 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <GuestAuthProvider>
-          <UnifiedAuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <PWAInstallPrompt />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={
-                    <AppLayout>
-                      <Index />
-                    </AppLayout>
-                  } />
-                  <Route path="/auth" element={<AuthPages />} />
-                  {/* Rota de desenvolvimento (apenas para DEV) */}
-                  <Route path="/dev" element={
-                    <AppLayout>
-                      <DevTools />
-                    </AppLayout>
-                  } />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </UnifiedAuthProvider>
-        </GuestAuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <GuestAuthProvider>
+              <UnifiedAuthProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <PWAInstallPrompt />
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={
+                        <AppLayout>
+                          <Index />
+                        </AppLayout>
+                      } />
+                      <Route path="/auth" element={<AuthPages />} />
+                      {/* Rota de desenvolvimento (apenas para DEV) */}
+                      <Route path="/dev" element={
+                        <AppLayout>
+                          <DevTools />
+                        </AppLayout>
+                      } />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </BrowserRouter>
+                </TooltipProvider>
+              </UnifiedAuthProvider>
+            </GuestAuthProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 };
 

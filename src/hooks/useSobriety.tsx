@@ -1,68 +1,58 @@
 
 import { useState, useEffect } from 'react'
-import { supabase, SobrietyRecord, AddictionType } from '@/lib/supabase'
-import { useAuth } from './useAuth'
+import { useUnifiedAuth } from '@/hooks/useUnifiedAuth'
+import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
+import { useGuestStorage } from '@/hooks/useGuestStorage'
+
+export interface SobrietyRecord {
+  id: string
+  user_id: string
+  addiction_type: string
+  start_date: string
+  current_streak: number
+  longest_streak: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
 
 export function useSobriety() {
-  const { user } = useAuth()
+  const { user, isGuest } = useUnifiedAuth()
+  const { guestData, updateGuestData, addToGuestData } = useGuestStorage()
   const { toast } = useToast()
-  const [records, setRecords] = useState<SobrietyRecord[]>([])
-  const [addictionTypes, setAddictionTypes] = useState<AddictionType[]>([])
+  const [sobrietyRecords, setSobrietyRecords] = useState<SobrietyRecord[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Carregar tipos de vícios
-  const loadAddictionTypes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('addiction_types')
-        .select('*')
-        .order('name')
-
-      if (error) throw error
-      setAddictionTypes(data || [])
-    } catch (error) {
-      console.error('Erro ao carregar tipos de vícios:', error)
+  useEffect(() => {
+    if (isGuest) {
+      // Carregar dados do guest
+      setSobrietyRecords(guestData.sobrietyRecords || [])
+      setLoading(false)
+    } else if (user) {
+      // Carregar dados do usuário autenticado
+      fetchSobrietyRecords()
     }
-  }
+  }, [user, isGuest, guestData.sobrietyRecords])
 
-  // Carregar registros de sobriedade
-  const loadRecords = async () => {
+  const fetchSobrietyRecords = async () => {
     if (!user) return
 
     try {
       setLoading(true)
       const { data, error } = await supabase
         .from('sobriety_records')
-        .select(`
-          *,
-          addiction_types (*)
-        `)
+        .select('*')
         .eq('user_id', user.id)
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-
-      // Calcular dias atuais para cada registro
-      const updatedRecords = (data || []).map(record => {
-        const startDate = new Date(record.start_date)
-        const today = new Date()
-        const diffTime = today.getTime() - startDate.getTime()
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-        
-        return {
-          ...record,
-          current_streak_days: diffDays >= 0 ? diffDays : 0
-        }
-      })
-
-      setRecords(updatedRecords)
-    } catch (error) {
-      console.error('Erro ao carregar registros:', error)
+      setSobrietyRecords(data || [])
+    } catch (error: any) {
+      console.error('Erro ao buscar registros de sobriedade:', error)
       toast({
         title: "Erro",
-        description: "Não foi possível carregar suas jornadas.",
+        description: "Não foi possível carregar os registros de sobriedade.",
         variant: "destructive",
       })
     } finally {
@@ -70,14 +60,31 @@ export function useSobriety() {
     }
   }
 
-  // Iniciar nova jornada
-  const startJourney = async (
-    addictionTypeId: string,
-    startDate: string,
-    dailyCost?: number,
-    personalGoal?: string,
-    motivationReason?: string
-  ) => {
+  const startSobrietyJourney = async (addictionType: string) => {
+    if (isGuest) {
+      // Salvar localmente para guest
+      const newRecord: SobrietyRecord = {
+        id: `guest_${Date.now()}`,
+        user_id: 'guest',
+        addiction_type: addictionType,
+        start_date: new Date().toISOString(),
+        current_streak: 0,
+        longest_streak: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      addToGuestData('sobrietyRecords', newRecord)
+      setSobrietyRecords(prev => [newRecord, ...prev])
+      
+      toast({
+        title: "Jornada iniciada!",
+        description: `Sua jornada contra ${addictionType} começou. Você consegue!`,
+      })
+      return
+    }
+
     if (!user) return
 
     try {
@@ -86,29 +93,23 @@ export function useSobriety() {
         .insert([
           {
             user_id: user.id,
-            user_email: user.email,
-            addiction_type_id: addictionTypeId,
-            start_date: startDate,
-            current_streak_days: 0,
-            best_streak_days: 0,
-            total_relapses: 0,
-            is_active: true,
-            daily_cost: dailyCost,
-            personal_goal: personalGoal,
-            motivation_reason: motivationReason,
-          },
+            addiction_type: addictionType,
+            start_date: new Date().toISOString(),
+            current_streak: 0,
+            longest_streak: 0,
+            is_active: true
+          }
         ])
         .select()
+        .single()
 
       if (error) throw error
 
+      setSobrietyRecords(prev => [data, ...prev])
       toast({
         title: "Jornada iniciada!",
-        description: "Sua nova jornada de sobriedade começou. Você consegue!",
+        description: `Sua jornada contra ${addictionType} começou. Você consegue!`,
       })
-
-      await loadRecords()
-      return data[0]
     } catch (error: any) {
       console.error('Erro ao iniciar jornada:', error)
       toast({
@@ -116,26 +117,160 @@ export function useSobriety() {
         description: "Não foi possível iniciar a jornada.",
         variant: "destructive",
       })
-      throw error
     }
   }
 
-  // Finalizar jornada
-  const endJourney = async (recordId: string) => {
+  const updateStreak = async (recordId: string, streak: number) => {
+    if (isGuest) {
+      // Atualizar localmente para guest
+      const updatedRecords = sobrietyRecords.map(record => 
+        record.id === recordId 
+          ? { 
+              ...record, 
+              current_streak: streak,
+              longest_streak: Math.max(record.longest_streak, streak),
+              updated_at: new Date().toISOString()
+            }
+          : record
+      )
+      setSobrietyRecords(updatedRecords)
+      updateGuestData('sobrietyRecords', updatedRecords)
+      return
+    }
+
+    if (!user) return
+
     try {
+      const record = sobrietyRecords.find(r => r.id === recordId)
+      if (!record) return
+
       const { error } = await supabase
         .from('sobriety_records')
-        .update({ is_active: false })
+        .update({
+          current_streak: streak,
+          longest_streak: Math.max(record.longest_streak, streak),
+          updated_at: new Date().toISOString()
+        })
         .eq('id', recordId)
 
       if (error) throw error
 
+      setSobrietyRecords(prev => 
+        prev.map(r => 
+          r.id === recordId 
+            ? { 
+                ...r, 
+                current_streak: streak,
+                longest_streak: Math.max(r.longest_streak, streak),
+                updated_at: new Date().toISOString()
+              }
+            : r
+        )
+      )
+    } catch (error: any) {
+      console.error('Erro ao atualizar streak:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o streak.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const resetStreak = async (recordId: string) => {
+    if (isGuest) {
+      // Resetar localmente para guest
+      const updatedRecords = sobrietyRecords.map(record => 
+        record.id === recordId 
+          ? { 
+              ...record, 
+              current_streak: 0,
+              updated_at: new Date().toISOString()
+            }
+          : record
+      )
+      setSobrietyRecords(updatedRecords)
+      updateGuestData('sobrietyRecords', updatedRecords)
+      return
+    }
+
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('sobriety_records')
+        .update({
+          current_streak: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId)
+
+      if (error) throw error
+
+      setSobrietyRecords(prev => 
+        prev.map(r => 
+          r.id === recordId 
+            ? { ...r, current_streak: 0, updated_at: new Date().toISOString() }
+            : r
+        )
+      )
+
+      toast({
+        title: "Streak resetado",
+        description: "Não desista! Cada recomeço é uma nova oportunidade.",
+      })
+    } catch (error: any) {
+      console.error('Erro ao resetar streak:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível resetar o streak.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const endJourney = async (recordId: string) => {
+    if (isGuest) {
+      // Finalizar jornada localmente para guest
+      const updatedRecords = sobrietyRecords.map(record => 
+        record.id === recordId 
+          ? { 
+              ...record, 
+              is_active: false,
+              updated_at: new Date().toISOString()
+            }
+          : record
+      )
+      setSobrietyRecords(updatedRecords)
+      updateGuestData('sobrietyRecords', updatedRecords)
+      return
+    }
+
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('sobriety_records')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId)
+
+      if (error) throw error
+
+      setSobrietyRecords(prev => 
+        prev.map(r => 
+          r.id === recordId 
+            ? { ...r, is_active: false, updated_at: new Date().toISOString() }
+            : r
+        )
+      )
+
       toast({
         title: "Jornada finalizada",
-        description: "A jornada foi finalizada com sucesso.",
+        description: "Parabéns pelo seu progresso! Você pode iniciar uma nova jornada quando quiser.",
       })
-
-      await loadRecords()
     } catch (error: any) {
       console.error('Erro ao finalizar jornada:', error)
       toast({
@@ -146,60 +281,13 @@ export function useSobriety() {
     }
   }
 
-  // Criar tipo de vício personalizado
-  const createCustomAddiction = async (name: string, icon: string, color: string) => {
-    if (!user) return
-
-    try {
-      const { data, error } = await supabase
-        .from('addiction_types')
-        .insert([
-          {
-            name,
-            icon,
-            color,
-            created_by_user: user.id,
-          },
-        ])
-        .select()
-
-      if (error) throw error
-
-      toast({
-        title: "Tipo personalizado criado!",
-        description: `"${name}" foi adicionado aos seus tipos de vícios.`,
-      })
-
-      await loadAddictionTypes()
-      return data[0]
-    } catch (error: any) {
-      console.error('Erro ao criar tipo personalizado:', error)
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar o tipo personalizado.",
-        variant: "destructive",
-      })
-      throw error
-    }
-  }
-
-  useEffect(() => {
-    loadAddictionTypes()
-  }, [])
-
-  useEffect(() => {
-    if (user) {
-      loadRecords()
-    }
-  }, [user])
-
   return {
-    records,
-    addictionTypes,
+    sobrietyRecords,
     loading,
-    startJourney,
+    startSobrietyJourney,
+    updateStreak,
+    resetStreak,
     endJourney,
-    createCustomAddiction,
-    refreshRecords: loadRecords,
+    refetch: fetchSobrietyRecords
   }
 }
