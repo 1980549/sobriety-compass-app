@@ -22,28 +22,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast()
 
   useEffect(() => {
-    console.log('Inicializando Auth Provider...')
+    let mounted = true
     
-    // Configurar listener de mudanças de autenticação primeiro
+    // Configurar listener de mudanças de autenticação
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Mudança de auth:', _event, session)
+      if (!mounted) return
+      
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    // Depois verificar sessão inicial
+    // Verificar sessão inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Sessão inicial:', session)
+      if (!mounted) return
+      
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
     return () => {
-      console.log('Limpando subscription do Auth Provider')
+      mounted = false
       subscription.unsubscribe()
     }
   }, [])

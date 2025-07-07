@@ -30,39 +30,39 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   const currentUser: AppUser | null = user || guestUser
 
   useEffect(() => {
-    console.log('Inicializando Unified Auth Provider...')
+    let mounted = true
     
-    // Configurar listener de mudanças de autenticação primeiro
+    // Configurar listener de mudanças de autenticação
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('Mudança de auth:', _event, session)
+      if (!mounted) return
+      
       setSession(session)
       setUser(session?.user ?? null)
       
       // Se o usuário acabou de se autenticar e temos dados guest, migrar
       if (_event === 'SIGNED_IN' && session?.user && guestUser) {
-        setTimeout(() => {
-          migrateGuestData(session.user);
-        }, 0);
+        migrateGuestData(session.user)
       }
       
       setLoading(false)
     })
 
-    // Depois verificar sessão inicial
+    // Verificar sessão inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Sessão inicial:', session)
+      if (!mounted) return
+      
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
     return () => {
-      console.log('Limpando subscription do Unified Auth Provider')
+      mounted = false
       subscription.unsubscribe()
     }
-  }, [guestUser, migrateGuestData])
+  }, [])
 
   const signUp = async (email: string, password: string, nome?: string) => {
     try {

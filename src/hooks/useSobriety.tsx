@@ -65,16 +65,32 @@ export function useSobriety() {
   }, [])
 
   useEffect(() => {
+    let mounted = true
+    
     if (isGuest) {
-      setSobrietyRecords(guestData.sobrietyRecords || [])
-      setLoading(false)
-    } else if (currentUser) {
+      if (mounted) {
+        setSobrietyRecords(guestData.sobrietyRecords || [])
+        setLoading(false)
+      }
+    } else if (currentUser && !isGuest) {
       fetchSobrietyRecords()
+    } else {
+      if (mounted) {
+        setSobrietyRecords([])
+        setLoading(false)
+      }
     }
-  }, [currentUser, isGuest, guestData.sobrietyRecords])
+    
+    return () => {
+      mounted = false
+    }
+  }, [currentUser?.id, isGuest])
 
   const fetchSobrietyRecords = async () => {
-    if (!currentUser || isGuest) return
+    if (!currentUser || isGuest) {
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
@@ -101,7 +117,10 @@ export function useSobriety() {
         best_streak_days: record.best_streak_days || 0,
         total_relapses: record.total_relapses || 0,
         user_email: record.user_email || '',
-        addiction_type: record.addiction_types?.name || 'Vício'
+        addiction_type: record.addiction_types?.name || 'Vício',
+        // Garantir consistência nos campos
+        current_streak: record.current_streak_days || 0,
+        longest_streak: record.best_streak_days || 0
       }))
       
       setSobrietyRecords(transformedData)
@@ -112,6 +131,7 @@ export function useSobriety() {
         description: "Não foi possível carregar os registros de sobriedade.",
         variant: "destructive",
       })
+      setSobrietyRecords([])
     } finally {
       setLoading(false)
     }
