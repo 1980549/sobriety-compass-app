@@ -32,7 +32,9 @@ const MultiSobrietyDashboard = () => {
   }
 
   const getTotalDays = () => {
-    return records.reduce((acc, record) => acc + (record.current_streak_days || 0), 0)
+    return records
+      .filter(record => record.is_active) // Apenas jornadas ativas
+      .reduce((acc, record) => acc + (record.current_streak_days || 0), 0)
   }
 
   const getBestStreak = () => {
@@ -40,11 +42,14 @@ const MultiSobrietyDashboard = () => {
   }
 
   const getTotalSavings = () => {
-    return records.reduce((acc, record) => {
-      const dailyCost = record.daily_cost || 0
-      const days = record.current_streak_days || 0
-      return acc + (dailyCost * days)
-    }, 0).toFixed(2)
+    const total = records
+      .filter(record => record.is_active && record.daily_cost) // Apenas ativas com custo
+      .reduce((acc, record) => {
+        const dailyCost = Number(record.daily_cost) || 0
+        const days = Number(record.current_streak_days) || 0
+        return acc + (dailyCost * days)
+      }, 0)
+    return total.toFixed(2)
   }
 
   const getActiveJourneys = () => {

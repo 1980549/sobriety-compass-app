@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, AlertTriangle } from 'lucide-react';
+import { Send, Bot, User, AlertTriangle, Plus, Trash } from 'lucide-react';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
 import { ChatMessage } from '@/hooks/chatbot/types';
@@ -13,8 +13,14 @@ export const ChatInterface = () => {
   const { user } = useAuth();
   const {
     messages,
+    conversations,
+    currentConversationId,
     loading,
     sendMessage,
+    clearConversation,
+    deleteConversation,
+    createConversation,
+    selectConversation
   } = useChatbot();
 
   const [input, setInput] = useState('');
@@ -37,9 +43,16 @@ export const ChatInterface = () => {
     await sendMessage(message);
   };
 
-  const clearConversation = () => {
-    // Funcionalidade de limpar conversa será implementada no hook
-    console.log('Clear conversation - funcionalidade em desenvolvimento');
+  const handleClearConversation = () => {
+    clearConversation();
+  };
+
+  const handleDeleteConversation = (conversationId: string) => {
+    deleteConversation(conversationId);
+  };
+
+  const handleCreateNewConversation = () => {
+    createConversation();
   };
 
   const getEmotionColor = (message: ChatMessage) => {
@@ -70,7 +83,54 @@ export const ChatInterface = () => {
   }
 
   return (
-    <div className="flex flex-col h-[600px] max-w-4xl mx-auto">
+    <div className="flex h-[600px] max-w-6xl mx-auto gap-4">
+      {/* Sidebar de Conversas */}
+      <Card className="w-80 flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Conversas</h3>
+            <Button
+              size="sm"
+              onClick={handleCreateNewConversation}
+              disabled={loading}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <ScrollArea className="h-[480px]">
+            <div className="space-y-2">
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
+                    currentConversationId === conversation.conversation_id 
+                      ? 'bg-indigo-100 border border-indigo-200' 
+                      : ''
+                  }`}
+                  onClick={() => selectConversation(conversation.conversation_id)}
+                >
+                  <span className="text-sm truncate flex-1">
+                    Conversa {conversation.conversation_id.slice(0, 8)}...
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConversation(conversation.conversation_id);
+                    }}
+                    className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                  >
+                    <Trash className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      </Card>
+
+      {/* Chat Principal */}
       <Card className="flex-1 flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
@@ -81,7 +141,7 @@ export const ChatInterface = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={clearConversation}
+            onClick={handleClearConversation}
             disabled={messages.length === 0}
           >
             Limpar Chat

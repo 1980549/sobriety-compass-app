@@ -10,15 +10,19 @@ export function SavingsTracker() {
 
   // Calcular economia por jornada
   const savingsData = records
-    .filter(record => record.daily_cost)
-    .map(record => ({
-      name: record.addiction_types?.name || 'Vício',
-      icon: record.addiction_types?.icon || '🚫',
-      color: record.addiction_types?.color || '#6366f1',
-      dailyCost: record.daily_cost!,
-      days: record.current_streak_days,
-      totalSaved: record.daily_cost! * record.current_streak_days,
-    }))
+    .filter(record => record.daily_cost && record.daily_cost > 0)
+    .map(record => {
+      const dailyCost = Number(record.daily_cost) || 0
+      const days = Number(record.current_streak_days) || 0
+      return {
+        name: record.addiction_types?.name || 'Vício',
+        icon: record.addiction_types?.icon || '🚫',
+        color: record.addiction_types?.color || '#6366f1',
+        dailyCost,
+        days,
+        totalSaved: dailyCost * days,
+      }
+    })
 
   const totalSaved = savingsData.reduce((sum, item) => sum + item.totalSaved, 0)
   const dailyTotal = savingsData.reduce((sum, item) => sum + item.dailyCost, 0)

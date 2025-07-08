@@ -7,8 +7,9 @@ interface SobrietyCardStatsProps {
 }
 
 export const SobrietyCardStats = ({ record }: SobrietyCardStatsProps) => {
-  const daysClean = record.current_streak_days || 0
-  const moneySaved = (record.daily_cost || 0) * daysClean
+  const daysClean = Number(record.current_streak_days) || 0
+  const dailyCost = Number(record.daily_cost) || 0
+  const moneySaved = dailyCost * daysClean
 
   return (
     <div className="space-y-4">

@@ -130,11 +130,48 @@ export function useChatbot() {
    * Limpa a conversa atual
    */
   const clearConversation = () => {
-    updateState({ messages: [] })
-    toast({
-      title: "Conversa limpa",
-      description: "O histórico da conversa foi removido",
-    })
+    if (state.currentConversationId) {
+      updateState({ messages: [] })
+      toast({
+        title: "Conversa limpa",
+        description: "O histórico da conversa foi removido",
+      })
+    }
+  }
+
+  /**
+   * Exclui uma conversa específica
+   */
+  const deleteConversation = async (conversationId: string) => {
+    if (!user) return
+
+    try {
+      // Remove do estado local
+      const updatedConversations = state.conversations.filter(conv => conv.conversation_id !== conversationId)
+      
+      // Se era a conversa atual, limpa
+      if (state.currentConversationId === conversationId) {
+        updateState({ 
+          conversations: updatedConversations,
+          currentConversationId: null,
+          messages: []
+        })
+      } else {
+        updateState({ conversations: updatedConversations })
+      }
+
+      toast({
+        title: "Conversa excluída",
+        description: "A conversa foi removida com sucesso",
+      })
+    } catch (error) {
+      console.error('Erro ao excluir conversa:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a conversa",
+        variant: "destructive",
+      })
+    }
   }
 
   /**
@@ -232,5 +269,6 @@ export function useChatbot() {
     selectConversation,
     refreshConversations,
     clearConversation,
+    deleteConversation,
   }
 }
