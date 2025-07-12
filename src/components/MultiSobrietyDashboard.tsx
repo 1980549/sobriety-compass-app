@@ -31,19 +31,27 @@ const MultiSobrietyDashboard = () => {
     setIsStartModalOpen(false)
   }
 
+  // Cálculos revisados para garantir precisão
   const getTotalDays = () => {
     return records
-      .filter(record => record.is_active) // Apenas jornadas ativas
-      .reduce((acc, record) => acc + (record.current_streak_days || 0), 0)
+      .filter(record => record.is_active)
+      .reduce((acc, record) => {
+        const days = Number(record.current_streak_days) || 0
+        return acc + days
+      }, 0)
   }
 
   const getBestStreak = () => {
-    return records.reduce((acc, record) => Math.max(acc, record.best_streak_days || 0), 0)
+    if (records.length === 0) return 0
+    return records.reduce((acc, record) => {
+      const bestStreak = Number(record.best_streak_days) || 0
+      return Math.max(acc, bestStreak)
+    }, 0)
   }
 
   const getTotalSavings = () => {
     const total = records
-      .filter(record => record.is_active && record.daily_cost) // Apenas ativas com custo
+      .filter(record => record.is_active)
       .reduce((acc, record) => {
         const dailyCost = Number(record.daily_cost) || 0
         const days = Number(record.current_streak_days) || 0

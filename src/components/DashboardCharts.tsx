@@ -6,22 +6,27 @@ import { useSobriety } from '@/hooks/useSobriety';
 import { useMoodHistory } from '@/hooks/useMoodHistory';
 
 export const DashboardCharts = () => {
-  const { records } = useSobriety();
+  const { sobrietyRecords: records } = useSobriety();
   const { moodHistory } = useMoodHistory();
 
-  // Dados de streak ao longo do tempo
-  const streakData = records.map(record => ({
-    name: record.addiction_types?.name || 'Vício',
-    streak: record.current_streak_days,
-    best: record.best_streak_days,
-    economia: ((record.daily_cost || 0) * (record.current_streak_days || 0)),
-  }));
+  // Dados de streak ao longo do tempo (apenas jornadas ativas)
+  const streakData = records
+    .filter(record => record.is_active)
+    .map(record => ({
+      name: record.addiction_types?.name || record.addiction_type || 'Vício',
+      streak: Number(record.current_streak_days) || 0,
+      best: Number(record.best_streak_days) || 0,
+      economia: (Number(record.daily_cost) || 0) * (Number(record.current_streak_days) || 0),
+    }));
 
   // Dados de humor dos últimos 30 dias
-  const moodData = moodHistory.slice(0, 30).reverse().map(entry => ({
-    date: new Date(entry.entry_date).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
-    humor: entry.mood_value,
-  }));
+  const moodData = moodHistory
+    .slice(0, 30)
+    .reverse()
+    .map(entry => ({
+      date: new Date(entry.entry_date).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
+      humor: entry.mood_value,
+    }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

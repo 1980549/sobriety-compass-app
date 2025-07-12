@@ -323,7 +323,7 @@ export function useSobriety() {
               ...record, 
               current_streak: streak,
               current_streak_days: streak,
-              longest_streak: Math.max(record.longest_streak, streak),
+              longest_streak: Math.max(record.longest_streak || 0, streak),
               best_streak_days: Math.max(record.best_streak_days || 0, streak),
               updated_at: new Date().toISOString()
             }
@@ -331,6 +331,11 @@ export function useSobriety() {
       )
       setSobrietyRecords(updatedRecords)
       updateGuestData('sobrietyRecords', updatedRecords)
+      
+      toast({
+        title: "Progresso atualizado!",
+        description: `Parabéns! Você está com ${streak} dias limpo(s).`,
+      })
       return
     }
 
@@ -340,29 +345,56 @@ export function useSobriety() {
       const record = sobrietyRecords.find(r => r.id === recordId)
       if (!record) return
 
-      const { error } = await supabase
+      const newBestStreak = Math.max(record.best_streak_days || 0, streak)
+
+      // Atualizar registro principal
+      const { error: updateError } = await supabase
         .from('sobriety_records')
         .update({
           current_streak_days: streak,
-          best_streak_days: Math.max(record.best_streak_days || 0, streak),
+          best_streak_days: newBestStreak,
           updated_at: new Date().toISOString()
         })
         .eq('id', recordId)
 
-      if (error) throw error
+      if (updateError) throw updateError
 
+      // Registrar progresso diário
+      const { error: progressError } = await supabase
+        .from('daily_progress')
+        .upsert({
+          sobriety_record_id: recordId,
+          user_id: currentUser.id,
+          date: new Date().toISOString().split('T')[0],
+          day_clean: true,
+          daily_savings: (record.daily_cost || 0),
+          streak_day: streak
+        })
+
+      if (progressError) {
+        console.warn('Erro ao registrar progresso diário:', progressError)
+      }
+
+      // Atualizar estado local
       setSobrietyRecords(prev => 
         prev.map(r => 
           r.id === recordId 
             ? { 
                 ...r, 
                 current_streak_days: streak,
-                best_streak_days: Math.max(r.best_streak_days || 0, streak),
+                best_streak_days: newBestStreak,
+                current_streak: streak,
+                longest_streak: newBestStreak,
                 updated_at: new Date().toISOString()
               }
             : r
         )
       )
+
+      toast({
+        title: "Progresso atualizado!",
+        description: `Parabéns! Você está com ${streak} dias limpo(s).`,
+      })
     } catch (error: any) {
       console.error('Erro ao atualizar streak:', error)
       toast({

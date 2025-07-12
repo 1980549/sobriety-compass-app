@@ -333,6 +333,53 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_progress: {
+        Row: {
+          created_at: string | null
+          daily_savings: number | null
+          date: string
+          day_clean: boolean | null
+          id: string
+          notes: string | null
+          sobriety_record_id: string
+          streak_day: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          daily_savings?: number | null
+          date?: string
+          day_clean?: boolean | null
+          id?: string
+          notes?: string | null
+          sobriety_record_id: string
+          streak_day?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          daily_savings?: number | null
+          date?: string
+          day_clean?: boolean | null
+          id?: string
+          notes?: string | null
+          sobriety_record_id?: string
+          streak_day?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_progress_sobriety_record_id_fkey"
+            columns: ["sobriety_record_id"]
+            isOneToOne: false
+            referencedRelation: "sobriety_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null

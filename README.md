@@ -1,73 +1,220 @@
-# Welcome to your Lovable project
+# Sobriety Compass - Sistema de Acompanhamento de Recuperação
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/5e608e5c-879f-44d6-ab45-cfd8b91f71fb
 
-## How can I edit this code?
+## Visão Geral
 
-There are several ways of editing your application.
+O Sobriety Compass é uma aplicação web para acompanhamento de jornadas de recuperação de vícios, oferecendo ferramentas de monitoramento, apoio psicológico e insights sobre progresso.
 
-**Use Lovable**
+## Principais Funcionalidades
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5e608e5c-879f-44d6-ab45-cfd8b91f71fb) and start prompting.
+### 🎯 Dashboard de Progresso
+- **Total de Dias Limpos**: Soma de todos os dias de todas as jornadas ativas
+- **Melhor Sequência**: Maior streak registrado entre todas as jornadas
+- **Dinheiro Economizado**: Cálculo automático baseado no custo diário configurado
+- **Jornadas Ativas**: Contador de jornadas em andamento
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📊 Gráficos e Visualizações
+- **Progresso de Streaks**: Comparação entre streak atual e melhor streak
+- **Economia Acumulada**: Visualização da economia total por jornada
+- **Histórico de Humor**: Tracking do estado emocional ao longo do tempo
 
-**Use your preferred IDE**
+### 🤖 Chat IA Integrado
+- Assistente de IA para apoio psicológico
+- Sistema de conversas individuais com histórico
+- **Novas funcionalidades**:
+  - ✅ Exclusão individual de conversas
+  - ✅ Limpeza completa de conversa (remove do banco de dados)
+  - ✅ Criação de novas conversas
+  - ✅ Indicação visual da conversa ativa
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 📱 Interface Responsiva
+- Design adaptativo para desktop e mobile
+- PWA (Progressive Web App) preparado
+- Dark/Light mode support
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Arquitetura Técnica
 
-Follow these steps:
+### Frontend
+- **React 18** + TypeScript
+- **Vite** para build e desenvolvimento
+- **Tailwind CSS** para estilização
+- **Shadcn/ui** para componentes
+- **Recharts** para visualizações
+- **TanStack Query** para cache de dados
+
+### Backend
+- **Supabase** como Backend-as-a-Service
+- **PostgreSQL** como banco de dados
+- **Row Level Security (RLS)** para segurança
+- **Real-time subscriptions** para atualizações em tempo real
+
+### Estrutura do Banco de Dados
+
+#### Tabelas Principais
+
+**sobriety_records**
+- `id`: UUID (chave primária)
+- `user_id`: UUID (referência ao usuário)
+- `addiction_type_id`: UUID (tipo de vício)
+- `start_date`: Data de início da jornada
+- `current_streak_days`: Dias limpos atuais
+- `best_streak_days`: Melhor sequência já alcançada
+- `daily_cost`: Custo diário do vício (para cálculos de economia)
+- `is_active`: Se a jornada está ativa
+- `total_relapses`: Número total de recaídas
+- `motivation_reason`: Razão da motivação
+- `personal_goal`: Meta pessoal
+
+**daily_progress** (nova tabela)
+- `id`: UUID (chave primária)
+- `sobriety_record_id`: UUID (referência à jornada)
+- `user_id`: UUID (referência ao usuário)
+- `date`: Data do registro
+- `day_clean`: Boolean indicando se o dia foi limpo
+- `daily_savings`: Economia do dia
+- `streak_day`: Dia do streak
+- `notes`: Anotações do dia
+
+**chat_conversations**
+- `id`: UUID (chave primária)
+- `conversation_id`: String identificadora única
+- `user_id`: UUID (referência ao usuário)
+- `created_at`: Timestamp de criação
+
+**chat_messages**
+- `id`: UUID (chave primária)
+- `conversation_id`: UUID (referência à conversa)
+- `user_id`: UUID (referência ao usuário)
+- `role`: 'user' ou 'assistant'
+- `content`: Conteúdo da mensagem
+- `message_type`: Tipo da mensagem (text, crisis, encouragement)
+- `emotion_detected`: Emoção detectada (opcional)
+- `crisis_level`: Nível de crise (1-5, opcional)
+
+## Principais Correções Implementadas
+
+### 🔧 Cálculos do Dashboard
+- **Corrigido**: Cálculo de "Total de Dias" agora soma corretamente todas as jornadas ativas
+- **Corrigido**: "Melhor Sequência" busca o maior valor entre todas as jornadas do usuário
+- **Corrigido**: "Dinheiro Economizado" calcula precisamente com base no custo diário × dias limpos
+- **Melhorado**: Todos os cálculos são atualizados em tempo real após ações do usuário
+
+### 📊 Gráficos e Visualizações
+- **Corrigido**: Gráficos agora refletem dados atualizados após ações (+1 Dia, Recair, etc.)
+- **Melhorado**: Dados são filtrados para mostrar apenas jornadas ativas
+- **Corrigido**: Problemas de sincronização entre estado e visualização
+
+### 🤖 Chat IA
+- **Adicionado**: Funcionalidade de excluir conversas individualmente
+- **Corrigido**: Limpeza de conversa agora remove mensagens do banco de dados
+- **Melhorado**: Interface com sidebar de conversas e indicação visual da conversa ativa
+- **Adicionado**: Botão para criar nova conversa
+
+### 🔄 Sincronização de Dados
+- **Melhorado**: Hook `useSobriety` com melhor gestão de estado
+- **Adicionado**: Registro automático de progresso diário
+- **Corrigido**: Problemas de inconsistência entre frontend e backend
+
+## Como usar localmente
+
+### Pré-requisitos
+- Node.js 18+ com npm
+- Conta no Supabase (para backend)
+
+### Instalação
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# 1. Clone o repositório
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 2. Instale as dependências
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 3. Configure as variáveis de ambiente
+cp .env.example .env.local
+# Edite .env.local com suas credenciais do Supabase
+
+# 4. Execute o servidor de desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Configuração do Supabase
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Crie um projeto no [Supabase](https://supabase.com)
+2. Execute as migrations SQL fornecidas no diretório `supabase/migrations/`
+3. Configure as variáveis de ambiente:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 
-**Use GitHub Codespaces**
+## Deploy
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Vercel (Recomendado)
+1. Conecte seu repositório no Vercel
+2. Configure as variáveis de ambiente
+3. Deploy automático a cada push
 
-## What technologies are used for this project?
+### Outras plataformas
+O projeto é compatível com qualquer plataforma que suporte React/Vite:
+- Netlify
+- Railway
+- Render
+- AWS Amplify
 
-This project is built with:
+## Tecnologias Utilizadas
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Core
+- **React 18** - Framework frontend
+- **TypeScript** - Tipagem estática
+- **Vite** - Build tool e desenvolvimento
+- **Tailwind CSS** - Framework CSS
 
-## How can I deploy this project?
+### UI/UX
+- **Shadcn/ui** - Biblioteca de componentes
+- **Lucide React** - Ícones
+- **Recharts** - Gráficos e visualizações
 
-Simply open [Lovable](https://lovable.dev/projects/5e608e5c-879f-44d6-ab45-cfd8b91f71fb) and click on Share -> Publish.
+### Backend/Database
+- **Supabase** - Backend como serviço
+- **PostgreSQL** - Banco de dados relacional
+- **Row Level Security** - Segurança de dados
 
-## Can I connect a custom domain to my Lovable project?
+### Desenvolvimento
+- **ESLint** - Linting
+- **Prettier** - Formatação de código
+- **Husky** - Git hooks
 
-Yes, you can!
+## Roadmap
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### 🔜 Próximas Features
+- [ ] Sistema de notificações push
+- [ ] Backup automático de dados
+- [ ] Modo offline
+- [ ] Gamificação avançada
+- [ ] Integração com wearables
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### 🚀 Melhorias Técnicas
+- [ ] Testes automatizados (Vitest + Testing Library)
+- [ ] CI/CD pipeline
+- [ ] Monitoramento e analytics
+- [ ] Performance optimization
+- [ ] Auditoria de segurança
+
+## Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+## Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## Suporte
+
+Para suporte, abra uma issue no GitHub ou entre em contato através do projeto Lovable.

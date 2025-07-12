@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
 import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase'
 import { ChatMessage, ChatConversation, ChatbotState } from './chatbot/types'
 import { 
   loadConversations, 
@@ -127,14 +128,34 @@ export function useChatbot() {
   }
 
   /**
-   * Limpa a conversa atual
+   * Limpa a conversa atual (apaga todas as mensagens)
    */
-  const clearConversation = () => {
-    if (state.currentConversationId) {
+  const clearConversation = async () => {
+    if (!state.currentConversationId || !user) return
+
+    try {
+      // Excluir todas as mensagens da conversa atual
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('conversation_id', state.currentConversationId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // Limpar estado local
       updateState({ messages: [] })
+      
       toast({
         title: "Conversa limpa",
         description: "O histórico da conversa foi removido",
+      })
+    } catch (error) {
+      console.error('Erro ao limpar conversa:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível limpar a conversa",
+        variant: "destructive",
       })
     }
   }
@@ -146,16 +167,46 @@ export function useChatbot() {
     if (!user) return
 
     try {
-      // Remove do estado local
+      // Primeiro, excluir as mensagens da conversa
+      const { error: messagesError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+
+      if (messagesError) throw messagesError
+
+      // Depois, excluir a conversa
+      const { error: conversationError } = await supabase
+        .from('chat_conversations')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+
+      if (conversationError) throw conversationError
+
+      // Atualizar estado local
       const updatedConversations = state.conversations.filter(conv => conv.conversation_id !== conversationId)
       
-      // Se era a conversa atual, limpa
+      // Se era a conversa atual, limpa e seleciona outra ou cria nova
       if (state.currentConversationId === conversationId) {
-        updateState({ 
-          conversations: updatedConversations,
-          currentConversationId: null,
-          messages: []
-        })
+        const nextConversation = updatedConversations.length > 0 ? updatedConversations[0] : null
+        
+        if (nextConversation) {
+          updateState({ 
+            conversations: updatedConversations,
+            currentConversationId: nextConversation.conversation_id
+          })
+          // Carregar mensagens da próxima conversa
+          const messages = await loadMessages(nextConversation.conversation_id)
+          updateState({ messages })
+        } else {
+          updateState({ 
+            conversations: updatedConversations,
+            currentConversationId: null,
+            messages: []
+          })
+        }
       } else {
         updateState({ conversations: updatedConversations })
       }
