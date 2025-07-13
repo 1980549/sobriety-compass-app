@@ -9,15 +9,26 @@ export const DashboardCharts = () => {
   const { sobrietyRecords: records } = useSobriety();
   const { moodHistory } = useMoodHistory();
 
-  // Dados de streak ao longo do tempo (apenas jornadas ativas)
+  // Função para calcular dias limpos automaticamente
+  const calculateDaysClean = (startDate: string, lastRelapseDate?: string): number => {
+    const now = new Date()
+    const baseDate = lastRelapseDate ? new Date(lastRelapseDate) : new Date(startDate)
+    const diffTime = Math.abs(now.getTime() - baseDate.getTime())
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  // Dados de streak ao longo do tempo (apenas jornadas ativas) com cálculos automáticos
   const streakData = records
     .filter(record => record.is_active)
-    .map(record => ({
-      name: record.addiction_types?.name || record.addiction_type || 'Vício',
-      streak: Number(record.current_streak_days) || 0,
-      best: Number(record.best_streak_days) || 0,
-      economia: (Number(record.daily_cost) || 0) * (Number(record.current_streak_days) || 0),
-    }));
+    .map(record => {
+      const currentDays = calculateDaysClean(record.start_date, record.last_relapse_date)
+      return {
+        name: record.addiction_types?.name || record.addiction_type || 'Vício',
+        streak: currentDays,
+        best: Number(record.best_streak_days) || 0,
+        economia: (Number(record.daily_cost) || 0) * currentDays,
+      }
+    });
 
   // Dados de humor dos últimos 30 dias
   const moodData = moodHistory

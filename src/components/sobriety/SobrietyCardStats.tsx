@@ -7,7 +7,15 @@ interface SobrietyCardStatsProps {
 }
 
 export const SobrietyCardStats = ({ record }: SobrietyCardStatsProps) => {
-  const daysClean = Number(record.current_streak_days) || 0
+  // Calcular dias limpos automaticamente baseado na data
+  const calculateDaysClean = (startDate: string, lastRelapseDate?: string): number => {
+    const now = new Date()
+    const baseDate = lastRelapseDate ? new Date(lastRelapseDate) : new Date(startDate)
+    const diffTime = Math.abs(now.getTime() - baseDate.getTime())
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  const daysClean = calculateDaysClean(record.start_date, record.last_relapse_date)
   const dailyCost = Number(record.daily_cost) || 0
   const moneySaved = dailyCost * daysClean
 

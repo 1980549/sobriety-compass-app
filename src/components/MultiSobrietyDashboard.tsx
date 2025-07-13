@@ -31,12 +31,20 @@ const MultiSobrietyDashboard = () => {
     setIsStartModalOpen(false)
   }
 
-  // Cálculos revisados para garantir precisão
+  // Função para calcular dias limpos automaticamente
+  const calculateDaysClean = (startDate: string, lastRelapseDate?: string): number => {
+    const now = new Date()
+    const baseDate = lastRelapseDate ? new Date(lastRelapseDate) : new Date(startDate)
+    const diffTime = Math.abs(now.getTime() - baseDate.getTime())
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  // Cálculos automáticos baseados na data de início
   const getTotalDays = () => {
     return records
       .filter(record => record.is_active)
       .reduce((acc, record) => {
-        const days = Number(record.current_streak_days) || 0
+        const days = calculateDaysClean(record.start_date, record.last_relapse_date)
         return acc + days
       }, 0)
   }
@@ -54,7 +62,7 @@ const MultiSobrietyDashboard = () => {
       .filter(record => record.is_active)
       .reduce((acc, record) => {
         const dailyCost = Number(record.daily_cost) || 0
-        const days = Number(record.current_streak_days) || 0
+        const days = calculateDaysClean(record.start_date, record.last_relapse_date)
         return acc + (dailyCost * days)
       }, 0)
     return total.toFixed(2)

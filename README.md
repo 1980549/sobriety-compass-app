@@ -8,27 +8,44 @@
 
 O Sobriety Compass é uma aplicação web para acompanhamento de jornadas de recuperação de vícios, oferecendo ferramentas de monitoramento, apoio psicológico e insights sobre progresso.
 
+## ⚠️ SISTEMA DE CÁLCULO AUTOMÁTICO IMPLEMENTADO
+
+### 🔄 **MUDANÇA FUNDAMENTAL: CÁLCULO BASEADO EM DATA DE INÍCIO**
+
+#### Nova Lógica (SEM BOTÃO "+1 DIA"):
+- ✅ **Cálculo automático**: Baseado na diferença entre data atual e data de início
+- ✅ **Atualização em tempo real**: Contadores se atualizam automaticamente a cada minuto
+- ✅ **Gerenciamento de recaídas**: Registro com data específica
+- ✅ **Edição de data de início**: Permite correções posteriores
+- ✅ **Sistema realista**: Progresso reflete tempo real transcorrido
+
 ## Principais Funcionalidades
 
-### 🎯 Dashboard de Progresso
-- **Total de Dias Limpos**: Soma de todos os dias de todas as jornadas ativas
+### 🎯 Dashboard de Progresso (AUTOMÁTICO)
+- **Total de Dias Limpos**: Calculado automaticamente como `hoje - data_início`
 - **Melhor Sequência**: Maior streak registrado entre todas as jornadas
-- **Dinheiro Economizado**: Cálculo automático baseado no custo diário configurado
+- **Dinheiro Economizado**: `dias_limpos × valor_diário` calculado dinamicamente
 - **Jornadas Ativas**: Contador de jornadas em andamento
 
-### 📊 Gráficos e Visualizações
-- **Progresso de Streaks**: Comparação entre streak atual e melhor streak
-- **Economia Acumulada**: Visualização da economia total por jornada
+### 📊 Gráficos e Visualizações (TEMPO REAL)
+- **Progresso de Streaks**: Comparação automática entre streak atual e melhor streak
+- **Economia Acumulada**: Visualização da economia total calculada em tempo real
 - **Histórico de Humor**: Tracking do estado emocional ao longo do tempo
 
-### 🤖 Chat IA Integrado
+### 🤖 Chat IA Integrado (MELHORADO)
 - Assistente de IA para apoio psicológico
 - Sistema de conversas individuais com histórico
-- **Novas funcionalidades**:
-  - ✅ Exclusão individual de conversas
+- **Funcionalidades implementadas**:
+  - ✅ Exclusão individual de conversas (ícone lixeira)
   - ✅ Limpeza completa de conversa (remove do banco de dados)
   - ✅ Criação de novas conversas
-  - ✅ Indicação visual da conversa ativa
+  - ✅ Interface otimizada e mais intuitiva
+
+### 🆕 Funcionalidades do Sistema Automático
+- **Registro de Recaída**: Seleciona data específica da recaída
+- **Editar Data de Início**: Corrige informações iniciais
+- **Cálculos Dinâmicos**: Todos os valores são recalculados automaticamente
+- **Sem Intervenção Manual**: Sistema funciona independente de ação diária
 
 ### 📱 Interface Responsiva
 - Design adaptativo para desktop e mobile

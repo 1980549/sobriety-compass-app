@@ -13,17 +13,17 @@ interface SobrietyCardProps {
 }
 
 export const SobrietyCard = ({ record }: SobrietyCardProps) => {
-  const { updateStreak, resetStreak, endJourney, deleteJourney } = useSobriety()
+  const { registerRelapse, updateStartDate, endJourney, deleteJourney } = useSobriety()
   const { removeAchievementsForRecord } = useAchievements()
 
-  const daysClean = record.current_streak_days || 0
-
-  const handleIncrementDay = () => {
-    updateStreak(record.id, daysClean + 1)
+  const handleRegisterRelapse = (relapseDate?: string) => {
+    registerRelapse(record.id, relapseDate)
   }
 
-  const handleResetStreak = () => {
-    resetStreak(record.id)
+  const handleUpdateStartDate = (newStartDate: string) => {
+    if (updateStartDate) {
+      updateStartDate(record.id, newStartDate)
+    }
   }
 
   const handleEndJourney = () => {
@@ -55,8 +55,8 @@ export const SobrietyCard = ({ record }: SobrietyCardProps) => {
         
         <SobrietyCardActions
           record={record}
-          onIncrementDay={handleIncrementDay}
-          onResetStreak={handleResetStreak}
+          onRegisterRelapse={handleRegisterRelapse}
+          onUpdateStartDate={handleUpdateStartDate}
           onEndJourney={handleEndJourney}
           onDeleteJourney={handleDeleteJourney}
         />
